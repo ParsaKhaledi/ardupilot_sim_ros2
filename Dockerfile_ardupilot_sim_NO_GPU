@@ -55,15 +55,17 @@ USER ${USER_NAME}
 # Install Micro-XRCE-DDS-Agent
 RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
 	cd Micro-XRCE-DDS-Agent &&\
-	git submodule init &&\
-	git submodule update &&\
-	./gradlew assemble
+	mkdir build && cd build &&\
+	cmake .. && make && sudo make install && \
+	sudo ldconfig /usr/local/lib/
+	
 
 # Install Micro-XRCE-DDS-gen
 RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Gen.git &&\
-	cd Micro-XRCE-DDS-Gen && mkdir build && cd build &&\
-	cmake .. && make && sudo make install && \
-	sudo ldconfig /usr/local/lib/
+	cd Micro-XRCE-DDS-Gen && \
+	git submodule init &&\
+	git submodule update &&\
+	./gradlew assemble
 
 ## Ardupilot Stuff
 RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7 && \
