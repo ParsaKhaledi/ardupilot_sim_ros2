@@ -56,8 +56,8 @@ RUN cd / && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 USER ${USER_NAME}
 
 # Install Micro-XRCE-DDS-Agent
-RUN cd / && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
-	cd /Micro-XRCE-DDS-Agent &&\
+RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
+	cd ~/Micro-XRCE-DDS-Agent &&\
 	git submodule init &&\
 	git submodule update &&\
 	./gradlew assemble
@@ -103,6 +103,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
 ### Build WS ardupilot_gazebo
 RUN cd ~ && \
 	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
+	export GZ_VERSION=harmonic &&\
 	cd ardupilot_gazebo && \
 	mkdir build && cd build && \
 	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
