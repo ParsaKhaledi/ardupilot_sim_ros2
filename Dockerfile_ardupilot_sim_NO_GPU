@@ -101,7 +101,7 @@ RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
 	export GZ_VERSION=harmonic &&\
 	source /opt/ros/$ROS_DISTRO/setup.bash &&\
 	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
-	pip3 install -U setup_tools && \
+	pip3 install -U setuptools && \
 	colcon build && source ./install/setup.bash &&\
 	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
 	colcon test-result --all --verbose
