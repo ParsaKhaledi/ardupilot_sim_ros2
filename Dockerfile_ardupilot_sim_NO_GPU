@@ -80,7 +80,8 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 	USER=${USER_NAME} && \
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
 	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y
-RUN cd ~/ardupilot && ./waf configure copter --enable-dds
+RUN cd ~/ardupilot && source ~/microros_ws/install/local_setup.bash &&\
+./waf configure copter --enable-dds
 
 ## Install dependensise with rosdep
 RUN export GZ_VERSION=harmonic && \
