@@ -63,8 +63,8 @@ RUN USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' /ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
 	cd /ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y
 RUN cd /ardupilot && ./waf distclean
-RUN cd /ardupilot && ./waf configure --board sitl
-# RUN cd /ardupilot &&  ./waf copter
+RUN cd /ardupilot && ./waf configure --board sitl --enable-dds
+RUN cd /ardupilot &&  ./waf copter
 
 ## Install dependensise with rosdep
 RUN export GZ_VERSION=harmonic && \
@@ -104,7 +104,7 @@ RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
 	python -m pip install --upgrade pip &&\
 	python -m pip install --upgrade setuptools wheel twine check-wheel-contents	&&\
 	pip3 install -U setuptools==75.8.0 && \
-	colcon build && source ./install/setup.bash &&\
+	colcon build && source ./install/setup.bash && source ~/microros_ws/install/local_setup.bash &&\
 	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
 	colcon test-result --all --verbose
 
