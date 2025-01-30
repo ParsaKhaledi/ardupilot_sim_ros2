@@ -1,0 +1,125 @@
+ARG ROS_DISTRO=humble
+FROM ros:${ROS_DISTRO}-ros-base-jammy
+
+SHELL ["/bin/bash", "-c"]
+
+ARG USER_NAME=ardupilot
+ARG USER_UID=1000
+ARG USER_GID=1000
+ARG SKIP_AP_EXT_ENV=0
+ARG SKIP_AP_GRAPHIC_ENV=1
+ARG SKIP_AP_COV_ENV=1
+ARG SKIP_AP_GIT_CHECK=1
+ARG DO_AP_STM_ENV=1
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV QT_X11_NO_MITSHM=1
+ENV LANG=en_US.UTF-8
+ENV ROS2_INSTALL_PATH=/opt/ros/$ROS_DISTRO
+ENV WORKDIR=/ws_ardupilot
+ENV ROS_DISTRO=humble
+WORKDIR ${WORKDIR}
+
+## Install Gazebo harmonic Nav2 and rtabmap 
+RUN apt update 1>/dev/null	&& apt upgrade -y 1>/dev/null 
+RUN apt install -y --no-install-recommends \
+	vim udev git sudo unzip curl cmake wget tmux \
+	ros-dev-tools \
+	gnupg2 lsb-release socat \
+	tzdata default-jre \
+	xauth xorg openbox python3-argcomplete python3 python3-pip \
+	gcc-arm-none-eabi apt-utils  && \
+	wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | \ 
+	sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
+	apt update 1>/dev/null && apt install -y \
+	gz-harmonic ros-${ROS_DISTRO}-ros-gzharmonic ros-${ROS_DISTRO}-geographic-msgs ros-${ROS_DISTRO}-desktop\
+	libgz-sim8-dev rapidjson-dev \
+	libopencv-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+	gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl \
+	ros-$ROS_DISTRO-rmw-cyclonedds-cpp 
+
+
+# Set User	
+RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
+    useradd -l -m ${USER_NAME} -u ${USER_UID} -g ${USER_GID} -s /bin/bash && \
+	echo "ardupilot ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USER_NAME} && \
+	mkdir -p /ardupilot && \
+	chmod 0440 /etc/sudoers.d/${USER_NAME} && chown -R ${USER_NAME}:${USER_NAME} /${USER_NAME}
+
+## pip3 install 
+RUN pip install --upgrade pymavlink MAVProxy --user
+
+## Ardupilot Stuff
+RUN cd / && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7
+
+USER ${USER_NAME}
+
+RUN USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
+	SKIP_AP_EXT_ENV=$SKIP_AP_EXT_ENV SKIP_AP_GRAPHIC_ENV=$SKIP_AP_GRAPHIC_ENV SKIP_AP_COV_ENV=$SKIP_AP_COV_ENV SKIP_AP_GIT_CHECK=$SKIP_AP_GIT_CHECK \
+	DO_AP_STM_ENV=$DO_AP_STM_ENV \
+	AP_DOCKER_BUILD=1 \
+	USER=${USER_NAME} && \
+	sudo sed -i '/sudo usermod -a -G dialout $USER/d' /ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
+	cd /ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y
+RUN cd /ardupilot && ./waf distclean
+RUN cd /ardupilot && ./waf configure --board sitl
+# RUN cd /ardupilot &&  ./waf copter
+
+## Install dependensise with rosdep
+RUN export GZ_VERSION=harmonic && \
+	sudo bash -c 'wget https://raw.githubusercontent.com/osrf/osrf-rosdep/master/gz/00-gazebo.list -O /etc/ros/rosdep/sources.list.d/00-gazebo.list' &&\
+	rosdep update &&\
+	rosdep resolve gz-harmonic 
+
+# Clone & install Micro-XRCE-DDS-Gen dependancy
+RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+    && cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+    && ./gradlew assemble \
+    && export AP_ENV_LOC="/home/${USER_NAME}/.ardupilot_env" \
+    && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
+RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
+	mkdir -p ~/microros_ws/src && cd ~/microros_ws && \
+	git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup &&\
+	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
+	colcon build && source ~/microros_ws/install/local_setup.bash 
+	
+
+
+### Build WS ardupilot_gazebo
+RUN cd ~ && \
+	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
+	cd ardupilot_gazebo && \
+	mkdir build && cd build && \
+	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+	make -j4 && \
+	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
+	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
+### Build WS ardupilot_gz
+RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
+	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src &&\
+	export GZ_VERSION=harmonic &&\
+	source /opt/ros/$ROS_DISTRO/setup.bash &&\
+	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
+	pip3 install -U setup_tools && \
+	colcon build && source ./install/setup.bash &&\
+	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
+	colcon test-result --all --verbose
+
+
+### Tumux conf
+RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
+	ln -s -f .tmux/.tmux.conf &&\
+	cp .tmux/.tmux.conf.local . &&\
+	echo "set -g mouse on" >> ~/.tmux.conf 
+
+### Write in ~/.bashrc
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc 
+	# echo "source ${WORKDIR}/install/setup.bash" >> ~/.bashrc 
+	# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+### Finilize
+RUN sudo rm -rf /var/lib/apt/lists/* 
+
+### ardupilot_msg - spil
+
+### packages 
