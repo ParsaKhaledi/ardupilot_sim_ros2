@@ -50,14 +50,11 @@ RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
 ## pip3 install 
 RUN pip install --upgrade pymavlink MAVProxy --user
 
-## Ardupilot Stuff
-RUN cd / && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7
-
 USER ${USER_NAME}
 
 # Install Micro-XRCE-DDS-Agent
 RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
-	cd ~/Micro-XRCE-DDS-Agent &&\
+	cd Micro-XRCE-DDS-Gen &&\
 	git submodule init &&\
 	git submodule update &&\
 	./gradlew assemble
@@ -68,17 +65,16 @@ RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Gen.git &&\
 	cmake .. && make && sudo make install && \
 	sudo ldconfig /usr/local/lib/
 
-
-RUN USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
+## Ardupilot Stuff
+RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7 && \
+	USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
 	SKIP_AP_EXT_ENV=$SKIP_AP_EXT_ENV SKIP_AP_GRAPHIC_ENV=$SKIP_AP_GRAPHIC_ENV SKIP_AP_COV_ENV=$SKIP_AP_COV_ENV SKIP_AP_GIT_CHECK=$SKIP_AP_GIT_CHECK \
 	DO_AP_STM_ENV=$DO_AP_STM_ENV \
 	AP_DOCKER_BUILD=1 \
 	USER=${USER_NAME} && \
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' /ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
 	cd /ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y
-RUN cd /ardupilot && ./waf distclean
-RUN cd /ardupilot && ./waf configure --board sitl --enable-dds
-RUN cd /ardupilot &&  ./waf copter
+RUN cd /ardupilot && ./waf configure copter --enable-dds
 
 ## Install dependensise with rosdep
 RUN export GZ_VERSION=harmonic && \
