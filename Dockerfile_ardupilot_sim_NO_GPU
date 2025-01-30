@@ -59,13 +59,17 @@ RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
 	cmake .. && make && sudo make install && \
 	sudo ldconfig /usr/local/lib/
 	
-
-# Install Micro-XRCE-DDS-gen
-RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Gen.git &&\
-	cd Micro-XRCE-DDS-Gen && \
-	git submodule init &&\
-	git submodule update &&\
-	./gradlew assemble
+# Clone & install Micro-XRCE-DDS-Gen dependancy
+RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+    && cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+    && ./gradlew assemble \
+    && export AP_ENV_LOC="/home/${USER_NAME}/.ardupilot_env" \
+    && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
+RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
+	mkdir -p ~/microros_ws/src && cd ~/microros_ws && \
+	git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup &&\
+	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
+	colcon build && source ~/microros_ws/install/local_setup.bash 
 
 ## Ardupilot Stuff
 RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7 && \
@@ -84,19 +88,6 @@ RUN export GZ_VERSION=harmonic && \
 	rosdep update &&\
 	rosdep resolve gz-harmonic 
 
-# Clone & install Micro-XRCE-DDS-Gen dependancy
-RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
-    && cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
-    && ./gradlew assemble \
-    && export AP_ENV_LOC="/home/${USER_NAME}/.ardupilot_env" \
-    && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
-RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
-	mkdir -p ~/microros_ws/src && cd ~/microros_ws && \
-	git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup &&\
-	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
-	colcon build && source ~/microros_ws/install/local_setup.bash 
-	
-
 
 ### Build WS ardupilot_gazebo
 RUN cd ~ && \
@@ -108,6 +99,7 @@ RUN cd ~ && \
 	make -j4 && \
 	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
 	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
+
 ### Build WS ardupilot_gz
 RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
 	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src &&\
@@ -121,7 +113,6 @@ RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
 	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
 	colcon test-result --all --verbose
 
-
 ### Tumux conf
 RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
 	ln -s -f .tmux/.tmux.conf &&\
@@ -129,8 +120,8 @@ RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
 	echo "set -g mouse on" >> ~/.tmux.conf 
 
 ### Write in ~/.bashrc
-RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc 
-	# echo "source ${WORKDIR}/install/setup.bash" >> ~/.bashrc 
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
+	echo "source  ~/microros_ws/install/local_setup.bash" >> ~/.bashrc 
 	# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 ### Finilize
 RUN sudo rm -rf /var/lib/apt/lists/* 
