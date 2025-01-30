@@ -55,18 +55,19 @@ RUN cd / && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 
 USER ${USER_NAME}
 
+# Install Micro-XRCE-DDS-Agent
+RUN cd / && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
+	cd /Micro-XRCE-DDS-Agent &&\
+	git submodule init &&\
+	git submodule update &&\
+	./gradlew assemble
+
 # Install Micro-XRCE-DDS-gen
 RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Gen.git &&\
 	cd Micro-XRCE-DDS-Gen && mkdir build && cd build &&\
 	cmake .. && make && sudo make install && \
 	sudo ldconfig /usr/local/lib/
-# Install Micro-XRCE-DDS-Agent
-## Install Micro XRCE-DDS
-RUN cd / && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
-	cd /Micro-XRCE-DDS-Agent &&\
-	mkdir build && cd build && cmake .. &&\
-	make && make install && sudo ldconfig /usr/local/lib/ &&\
-	cd / && rm -rf /Micro-XRCE-DDS-Agent/build
+
 
 RUN USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
 	SKIP_AP_EXT_ENV=$SKIP_AP_EXT_ENV SKIP_AP_GRAPHIC_ENV=$SKIP_AP_GRAPHIC_ENV SKIP_AP_COV_ENV=$SKIP_AP_COV_ENV SKIP_AP_GIT_CHECK=$SKIP_AP_GIT_CHECK \
