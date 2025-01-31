@@ -101,8 +101,11 @@ RUN export GZ_VERSION=harmonic && \
 RUN cd ~ && \
 	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
 	export GZ_VERSION=harmonic &&\
-	cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen && \
-	export PATH=\$PATH:$PWD/scripts &&\
+	# cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen && \
+	# export PATH=\$PATH:$PWD/scripts &&\
+	source /opt/ros/$ROS_DISTRO/setup.bash &&\ 
+	source ~/.bashrc &&\
+	source /home/${USER_NAME}/.ardupilot_env &&\
 	cd ~/ardupilot_gazebo && \
 	mkdir build && cd build &&\
 	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
