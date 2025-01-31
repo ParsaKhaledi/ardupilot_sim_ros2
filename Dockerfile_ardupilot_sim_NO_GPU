@@ -20,7 +20,7 @@ ENV WORKDIR=/ws_ardupilot
 ENV ROS_DISTRO=humble
 WORKDIR ${WORKDIR}
 
-## Install Gazebo harmonic Nav2 and rtabmap 
+## Apt update upgrade install
 RUN apt update 1>/dev/null	&& apt upgrade -y 1>/dev/null 
 RUN apt install -y --no-install-recommends \
 	vim udev git sudo unzip curl cmake wget tmux \
@@ -30,8 +30,7 @@ RUN apt install -y --no-install-recommends \
 	xauth xorg openbox python3-argcomplete python3 python3-pip \
 	apt-utils  1>/dev/null && \
 	wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | \ 
-	tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
 	apt update 1>/dev/null && apt install -y \
 	gz-harmonic ros-${ROS_DISTRO}-ros-gzharmonic ros-${ROS_DISTRO}-geographic-msgs ros-${ROS_DISTRO}-desktop\
 	libgz-sim8-dev rapidjson-dev \
@@ -101,10 +100,10 @@ RUN export GZ_VERSION=harmonic && \
 RUN cd ~ && \
 	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
 	export GZ_VERSION=harmonic &&\
-	cd ardupilot_gazebo && \
-	mkdir build && cd build && export AP_ENV_LOC="/home/${USER_NAME}/.ardupilot_env" &&\
 	cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen && \
-	echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC &&\
+	export PATH=\$PATH:$PWD/scripts &&\
+	cd ardupilot_gazebo && \
+	mkdir build && cd build &&\
 	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
 	make -j4 && \
 	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
