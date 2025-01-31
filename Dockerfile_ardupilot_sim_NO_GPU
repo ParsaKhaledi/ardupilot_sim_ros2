@@ -88,11 +88,11 @@ RUN export PATH=$PATH:/home/${USER_NAME}/Micro-XRCE-DDS-Gen/scripts &&\
 	cd ~/ardupilot && source ~/.ardupilot_env &&\
 	./waf configure copter --enable-dds && ./waf copter --enable-dds
 
-# ## Install dependensise with rosdep
-# RUN export GZ_VERSION=harmonic && \
-# 	sudo bash -c 'wget https://raw.githubusercontent.com/osrf/osrf-rosdep/master/gz/00-gazebo.list -O /etc/ros/rosdep/sources.list.d/00-gazebo.list' &&\
-# 	rosdep update &&\
-# 	rosdep resolve gz-harmonic 
+## Install GZ dependensise with rosdep
+RUN export GZ_VERSION=harmonic && \
+	sudo bash -c 'wget https://raw.githubusercontent.com/osrf/osrf-rosdep/master/gz/00-gazebo.list -O /etc/ros/rosdep/sources.list.d/00-gazebo.list' &&\
+	rosdep update &&\
+	rosdep resolve gz-harmonic 
 
 
 ### Build WS ardupilot_gazebo
