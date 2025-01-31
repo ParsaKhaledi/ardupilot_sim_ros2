@@ -28,7 +28,7 @@ RUN apt install -y --no-install-recommends \
 	gnupg2 lsb-release socat \
 	tzdata default-jre \
 	xauth xorg openbox python3-argcomplete python3 python3-pip \
-	apt-utils  && \
+	apt-utils  1>/dev/null && \
 	wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
 	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | \ 
 	tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
@@ -37,7 +37,7 @@ RUN apt install -y --no-install-recommends \
 	libgz-sim8-dev rapidjson-dev \
 	libopencv-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
 	gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl \
-	ros-$ROS_DISTRO-rmw-cyclonedds-cpp ros-${ROS_DISTRO}-fastrtps
+	ros-$ROS_DISTRO-rmw-cyclonedds-cpp ros-${ROS_DISTRO}-fastrtps 1>/dev/null
 
 
 # Set User	
