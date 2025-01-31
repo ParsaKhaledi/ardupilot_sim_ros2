@@ -103,15 +103,13 @@ RUN cd ~ && \
 	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
 	export GZ_VERSION=harmonic &&\
 	export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
-	# cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen && \
-	# export PATH=\$PATH:$PWD/scripts &&\
 	source /opt/ros/$ROS_DISTRO/setup.bash &&\ 
 	source ~/.bashrc &&\
 	source /home/${USER_NAME}/.ardupilot_env &&\
 	cd ~/ardupilot_gazebo && \
 	mkdir build && cd build &&\
 	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
-	make -j4 && \
+	make -j4 && sudo make install \
 	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
 	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
 
@@ -119,7 +117,7 @@ RUN cd ~ && \
 RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
 	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src &&\
 	export GZ_VERSION=harmonic &&\
-	source /opt/ros/$ROS_DISTRO/setup.bash &&\
+	source /opt/ros/$ROS_DISTRO/setup.bash && export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
 	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
 	python -m pip install --upgrade pip &&\
 	python -m pip install --upgrade setuptools wheel twine check-wheel-contents	&&\
