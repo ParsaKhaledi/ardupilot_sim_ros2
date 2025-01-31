@@ -31,7 +31,7 @@ RUN apt install -y --no-install-recommends \
 	gcc-arm-none-eabi apt-utils  && \
 	wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
 	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | \ 
-	sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
+	tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
 	apt update 1>/dev/null && apt install -y \
 	gz-harmonic ros-${ROS_DISTRO}-ros-gzharmonic ros-${ROS_DISTRO}-geographic-msgs ros-${ROS_DISTRO}-desktop\
 	libgz-sim8-dev rapidjson-dev \
@@ -79,16 +79,20 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 	AP_DOCKER_BUILD=1 \
 	USER=${USER_NAME} && \
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
-	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y
-RUN export PATH=$PATH:/home/${USER_NAME}/Micro-XRCE-DDS-Gen/scripts &&\
-	cd ~/ardupilot && source ~/microros_ws/install/local_setup.bash &&\
-	./waf configure copter --enable-dds
+	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y && \
+	cd /usr/lib/ccache &&\
+	sudo ln -s /usr/bin/ccache arm-none-eabi-g++ &&\
+	sudo ln -s /usr/bin/ccache arm-none-eabi-gcc # For ccache for faster builds
 
-## Install dependensise with rosdep
-RUN export GZ_VERSION=harmonic && \
-	sudo bash -c 'wget https://raw.githubusercontent.com/osrf/osrf-rosdep/master/gz/00-gazebo.list -O /etc/ros/rosdep/sources.list.d/00-gazebo.list' &&\
-	rosdep update &&\
-	rosdep resolve gz-harmonic 
+RUN export PATH=$PATH:/home/${USER_NAME}/Micro-XRCE-DDS-Gen/scripts &&\
+	cd ~/ardupilot && source ~/.ardupilot_env &&\
+	./waf configure copter --enable-dds && ./waf copter --enable-dds
+
+# ## Install dependensise with rosdep
+# RUN export GZ_VERSION=harmonic && \
+# 	sudo bash -c 'wget https://raw.githubusercontent.com/osrf/osrf-rosdep/master/gz/00-gazebo.list -O /etc/ros/rosdep/sources.list.d/00-gazebo.list' &&\
+# 	rosdep update &&\
+# 	rosdep resolve gz-harmonic 
 
 
 ### Build WS ardupilot_gazebo
@@ -123,7 +127,22 @@ RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
 
 ### Write in ~/.bashrc
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
-	echo "source  ~/microros_ws/install/local_setup.bash" >> ~/.bashrc 
+	echo "source  ~/microros_ws/install/local_setup.bash" >> ~/.bashrc &&\
+	echo "source ~/.ardupilot_env" >> ~/.bashrc &&\
+	echo "source ~/ws_gz/install/setup.bash" >> ~/.bashrc
 	# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+# # TCP 5760 is what the sim exposes by default
+# EXPOSE 5760/tcp
+
+# # Variables for simulator
+# ENV INSTANCE 0
+# ENV LAT 42.3898
+# ENV LON -71.1476
+# ENV ALT 14
+# ENV DIR 270
+# ENV MODEL +
+# ENV SPEEDUP 1
+# ENV VEHICLE ArduCopter
 ### Finilize
 RUN sudo rm -rf /var/lib/apt/lists/* 
