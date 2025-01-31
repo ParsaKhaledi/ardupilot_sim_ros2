@@ -1,0 +1,20 @@
+version: '3.6'
+
+services:
+  Ardupilot:
+    image: "ros:humble-ros-base-jammy"
+    container_name: ardupilot_sim
+    hostname: ardupilot_sim
+    tty: true
+    privileged: true
+    network_mode: "host"
+
+    environment:
+      DISPLAY: ${DISPLAY}
+      "XAUTHORITY": ${XAUTH}
+    volumes:
+      - /tmp/.X11-unix/:/tmp/.X11-unix/
+      - /dev:/dev/
+      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+      - ./volume:/volume/
+    command: /bin/bash -c "sleep inf"
