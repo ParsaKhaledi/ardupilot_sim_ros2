@@ -65,6 +65,8 @@ RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-G
     && ./gradlew assemble \
     && export AP_ENV_LOC="/home/${USER_NAME}/.ardupilot_env" \
     && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
+
+	# Install Microros
 RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
 	mkdir -p ~/microros_ws/src && cd ~/microros_ws && \
 	git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup &&\
@@ -100,7 +102,9 @@ RUN cd ~ && \
 	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
 	export GZ_VERSION=harmonic &&\
 	cd ardupilot_gazebo && \
-	mkdir build && cd build && \
+	mkdir build && cd build && export AP_ENV_LOC="/home/${USER_NAME}/.ardupilot_env" &&\
+	cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen && \
+	echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC &&\
 	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
 	make -j4 && \
 	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
