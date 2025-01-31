@@ -81,7 +81,7 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
 	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y
 RUN cd ~/ardupilot && source ~/microros_ws/install/local_setup.bash &&\
-./waf configure copter --enable-dds
+	./waf configure copter 
 
 ## Install dependensise with rosdep
 RUN export GZ_VERSION=harmonic && \
@@ -126,7 +126,3 @@ RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
 	# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 ### Finilize
 RUN sudo rm -rf /var/lib/apt/lists/* 
-
-### ardupilot_msg - spil
-
-### packages 
