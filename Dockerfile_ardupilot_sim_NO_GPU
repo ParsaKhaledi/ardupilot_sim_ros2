@@ -79,10 +79,10 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 	AP_DOCKER_BUILD=1 \
 	USER=${USER_NAME} && \
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
-	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y && \
-	cd /usr/lib/ccache &&\
-	sudo ln -s /usr/bin/ccache arm-none-eabi-g++ &&\
-	sudo ln -s /usr/bin/ccache arm-none-eabi-gcc # For ccache for faster builds
+	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y 
+	# cd /usr/lib/ccache &&\
+	# sudo ln -s /usr/bin/ccache arm-none-eabi-g++ &&\
+	# sudo ln -s /usr/bin/ccache arm-none-eabi-gcc # For ccache for faster builds
 
 RUN export PATH=$PATH:/home/${USER_NAME}/Micro-XRCE-DDS-Gen/scripts &&\
 	cd ~/ardupilot && source ~/.ardupilot_env &&\
