@@ -63,7 +63,7 @@ RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
 RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
     && cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
     && ./gradlew assemble \
-    && export AP_ENV_LOC="/home/${USER_NAME}/.ardupilot_env" \
+    && export AP_ENV_LOC="/home/ardupilot/.ardupilot_env" \
     && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
 
 	# Install Microros
