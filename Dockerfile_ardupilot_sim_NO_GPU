@@ -91,7 +91,8 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 
 RUN export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
 	cd ~/ardupilot && source ~/.ardupilot_env &&\
-	./waf configure copter --enable-dds && ./waf copter --enable-dds
+	./waf configure copter --enable-dds && ./waf copter --enable-dds && \
+	./waf configure --board sitl --enable-dds
 
 ## Install GZ dependensise with rosdep
 RUN export GZ_VERSION=harmonic && \
