@@ -44,7 +44,8 @@ RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
     useradd -l -m ${USER_NAME} -u ${USER_UID} -g ${USER_GID} -s /bin/bash && \
 	echo "ardupilot ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USER_NAME} && \
 	mkdir -p /ardupilot && \
-	chmod 0440 /etc/sudoers.d/${USER_NAME} && chown -R ${USER_NAME}:${USER_NAME} /${USER_NAME}
+	chmod 0440 /etc/sudoers.d/${USER_NAME} && chown -R ${USER_NAME}:${USER_NAME} /${USER_NAME} &&\
+	usermod -a -G dialout ${USER_NAME}
 
 # Change user
 USER ${USER_NAME}
@@ -114,17 +115,18 @@ RUN cd ~ && \
 	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
 
 ### Build WS ardupilot_gz
-#RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
-#	vcs import --input #https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src &&\
-#	export GZ_VERSION=harmonic &&\
-#	source /opt/ros/$ROS_DISTRO/setup.bash && export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
-#	sudo apt update && rosdep update && rosdep #install --from-paths src --ignore-src -y &&\
-	#python -m pip install --upgrade pip &&\
-#	python -m pip install --upgrade setuptools wheel twine check-wheel-contents	&&\
-	# pip3 install -U setuptools==75.8.0 && \
-	# colcon build && source ~/.ardupilot_env && #source ~/microros_ws/install/local_setup.bash && source ~/.bashrc &&\
-#	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
-#	colcon test-result --all --verbose
+RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
+	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src &&\
+	export GZ_VERSION=harmonic &&\
+	source ~/.ardupilot_env && source ~/microros_ws/install/local_setup.bash && source ~/.bashrc && \
+	source /opt/ros/$ROS_DISTRO/setup.bash && export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
+	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
+	python -m pip install --upgrade pip &&\
+	python -m pip install --upgrade setuptools wheel twine check-wheel-contents	&&\
+	pip3 install -U setuptools==75.8.0 && \
+	colcon build --packages-up-to ardupilot_gz_bringup &&\
+	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
+	colcon test-result --all --verbose
 
 ### Tumux conf
 RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
