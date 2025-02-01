@@ -18,3 +18,4 @@ services:
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ./volume:/volume/
     command: /bin/bash -c "sleep inf"
+    # https://github.com/ArduPilot/ardupilot_gazebo
