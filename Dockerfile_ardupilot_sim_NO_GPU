@@ -118,7 +118,7 @@ RUN cd ~ && \
 
 ### Build WS ardupilot_gz
 RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
-	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src &&\
+	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src -b humble &&\
 	export GZ_VERSION=harmonic &&\
 	source ~/.ardupilot_env && source ~/microros_ws/install/local_setup.bash && source ~/.bashrc && \
 	source /opt/ros/$ROS_DISTRO/setup.bash && export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
