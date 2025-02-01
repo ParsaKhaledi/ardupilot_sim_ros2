@@ -2,7 +2,7 @@ version: '3.6'
 
 services:
   Ardupilot:
-    image: "ros:humble-ros-base-jammy"
+    image: "alienkh/ardupilot_sim_ros2:33"
     container_name: ardupilot_sim
     hostname: ardupilot_sim
     tty: true
