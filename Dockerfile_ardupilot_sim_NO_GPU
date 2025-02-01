@@ -1,5 +1,5 @@
 ARG ROS_DISTRO=humble
-FROM ros:${ROS_DISTRO}-humble-perception
+FROM ros:${ROS_DISTRO}-perception
 
 SHELL ["/bin/bash", "-c"]
 
