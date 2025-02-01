@@ -126,7 +126,7 @@ RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
 	python -m pip install --upgrade pip &&\
 	python -m pip install --upgrade setuptools wheel twine check-wheel-contents	&&\
 	pip3 install -U setuptools==75.8.0 uvloop==0.17.0 black==21.12b0 && \
-	colcon build --packages-up-to ardupilot_gz_bringup --packages-skip micro_ros_agent &&\
+	colcon build --packages-up-to ardupilot_gz_bringup &&\
 	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
 	colcon test-result --all --verbose
 
