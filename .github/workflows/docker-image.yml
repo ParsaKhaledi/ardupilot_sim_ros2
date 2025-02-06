@@ -2,14 +2,13 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ "lagacy" ]
+
 
 env:
   Registery: docker.io
   ImageName: alienkh/ardupilot_sim_ros2
-  ImageTag: ${{ github.run_number }}
+  ImageTag: legacy_${{ github.run_number }}
 
 jobs:
   build_and_push_docker_image:
@@ -49,12 +48,34 @@ jobs:
           context: .
           push: true
           tags: ${{ env.Registery }}/${{ env.ImageName }}:${{ env.ImageTag }}
-          file: ./Dockerfile_ardupilot_sim_NO_GPU
+          file: ./Dockerfile_ardupilot_sim_Legacy
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-
+      
       - name: List cached Docker layers
         run: ls -l /tmp/.buildx-cache
+        
+      - name: Run Docker container
+        id: run-gazebo
+        run: |
+          docker run --name gazebo_container ardupilot_gazebo &
+          CONTAINER_ID=$(docker ps -qf "name=gazebo_container")
+          sleep 30  # Adjust the sleep duration as needed for the simulation to complete
+          docker logs $CONTAINER_ID
+          if docker wait $CONTAINER_ID | grep -q "0"; then
+            echo "Simulation succeeded."
+            docker stop $CONTAINER_ID
+            docker rm $CONTAINER_ID
+            echo "success" > result.txt
+          else
+            echo "Simulation failed."
+            docker stop $CONTAINER_ID
+            docker rm $CONTAINER_ID
+            echo "failure" > result.txt
+            exit 1
+          fi
+
+
 
   # Uncomment and modify the following block for GPU-enabled builds
   # build_and_push_docker_image_GPU_Enabled:
@@ -75,7 +96,7 @@ jobs:
   #       uses: actions/cache@v4
   #       with:
   #         path: /tmp/.buildx-cache
-  #         key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile_ardupilot_sim_NO_GPU', 'dockerFile/Dockerfile_ardupilot_sim_with_GPU') }}
+          # key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile_ardupilot_sim_Legacy', 'dockerFile/Dockerfile_ardupilot_sim_Legacy') }}
   #         restore-keys: |
   #           ${{ runner.os }}-buildx-
   #
