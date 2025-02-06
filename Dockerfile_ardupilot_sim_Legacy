@@ -1,4 +1,4 @@
-ARG ROS_DISTRO=humble
+ARG ROS_DISTRO=foxy
 FROM ros:${ROS_DISTRO}-perception
 
 SHELL ["/bin/bash", "-c"]
@@ -17,7 +17,7 @@ ENV QT_X11_NO_MITSHM=1
 ENV LANG=en_US.UTF-8
 ENV ROS2_INSTALL_PATH=/opt/ros/$ROS_DISTRO
 ENV WORKDIR=/ws_ardupilot
-ENV ROS_DISTRO=humble
+ENV ROS_DISTRO=foxy
 WORKDIR ${WORKDIR}
 
 ## Apt update upgrade install
@@ -29,7 +29,7 @@ RUN apt install -y --no-install-recommends \
 	apt-utils  1>/dev/null && \
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list' &&\
 	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && apt update && \
-	apt install gazebo9 libgazebo9-dev && gazebo --verbose
+	apt install gazebo11 libgazebo11-dev && gazebo --verbose
 
 # Set User	
 RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
