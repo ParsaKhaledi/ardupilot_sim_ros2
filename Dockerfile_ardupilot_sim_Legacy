@@ -1,5 +1,5 @@
 ARG ROS_DISTRO=foxy
-FROM ros:${ROS_DISTRO}-perception
+FROM ros:${ROS_DISTRO}-ros1-bridge-focal
 
 SHELL ["/bin/bash", "-c"]
 
