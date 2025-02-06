@@ -44,7 +44,7 @@ RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
 USER ${USER_NAME}
 
 ## pip3 install 
-RUN pip install pymavlink MAVProxy importlib-metadata==4.13.0 setuptools==70.5.0 --user
+RUN pip install pymavlink MAVProxy importlib-metadata==4.13.0 setuptools==75.8.0 --user
 
 ## Ardupilot Stuff
 RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7 && \
