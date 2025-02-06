@@ -2,7 +2,7 @@ version: '3.6'
 
 services:
   Ardupilot:
-    image: "alienkh/ardupilot_sim_ros2:33"
+    image: "alienkh/ardupilot_sim_ros2:legacy_${{ github.run_number }}"
     container_name: ardupilot_sim
     hostname: ardupilot_sim
     tty: true
@@ -17,5 +17,5 @@ services:
       - /dev:/dev/
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ./volume:/volume/
-    command: /bin/bash -c "sleep inf"
-    # https://github.com/ArduPilot/ardupilot_gazebo
+    command: /bin/bash -c "
+      ENTRYPOINT ["gazebo", "--verbose", "/worlds/iris_arducopter_runway.world"]"
