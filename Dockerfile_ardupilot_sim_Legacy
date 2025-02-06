@@ -1,5 +1,5 @@
-ARG ROS_DISTRO=humble
-FROM ros:${ROS_DISTRO}-perception
+ARG ROS_DISTRO=foxy
+FROM ros:${ROS_DISTRO}-ros1-bridge
 
 SHELL ["/bin/bash", "-c"]
 
@@ -17,7 +17,7 @@ ENV QT_X11_NO_MITSHM=1
 ENV LANG=en_US.UTF-8
 ENV ROS2_INSTALL_PATH=/opt/ros/$ROS_DISTRO
 ENV WORKDIR=/ws_ardupilot
-ENV ROS_DISTRO=humble
+ENV ROS_DISTRO=foxy
 WORKDIR ${WORKDIR}
 
 ## Apt update upgrade install
