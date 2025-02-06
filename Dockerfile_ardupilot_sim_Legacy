@@ -30,7 +30,7 @@ RUN apt install -y --no-install-recommends \
 	apt-utils  1>/dev/null && \
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list' &&\
 	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && apt update && \
-	apt install -y gazebo11 libgazebo11-dev && gazebo --verbose
+	apt install -y gazebo11 libgazebo11-dev 1>/dev/null  
 
 # Set User	
 RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
