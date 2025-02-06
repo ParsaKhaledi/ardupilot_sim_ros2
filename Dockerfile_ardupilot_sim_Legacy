@@ -89,7 +89,6 @@ RUN cd ~ && \
 	cmake .. && make -j4 && sudo make install &&\
 	# source /home/${USER_NAME}/.ardupilot_env &&\
 	echo 'source /usr/share/gazebo/setup.sh' >> ~/.bashrc && \
-	
 	echo 'export GAZEBO_RESOURCE_PATH=~/ardupilot_gazebo/worlds:${GAZEBO_RESOURCE_PATH}' >> ~/.bashrc >> ~/.bashrc
 
 ### Tumux conf
