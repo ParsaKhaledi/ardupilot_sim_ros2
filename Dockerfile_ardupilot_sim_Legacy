@@ -44,8 +44,8 @@ RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
 USER ${USER_NAME}
 
 ## pip3 install 
-RUN pip cache purge && pip install --upgrade pip setuptools wheel twine check-wheel-contents &&\ 
-	pip install pymavlink MAVProxy importlib-metadata==4.13.0 --user 
+RUN	pip cache remove * && pip install --upgrade pip setuptools wheel twine check-wheel-contents &&\
+ 	pip install pymavlink MAVProxy importlib-metadata==4.13.0 --user
 
 # # Install Micro-XRCE-DDS-Agent
 # RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
