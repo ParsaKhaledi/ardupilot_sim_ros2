@@ -1,0 +1,102 @@
+ARG ROS_DISTRO=humble
+FROM ros:${ROS_DISTRO}-perception
+
+SHELL ["/bin/bash", "-c"]
+
+ARG USER_NAME=ardupilot
+ARG USER_UID=1000
+ARG USER_GID=1000
+ARG SKIP_AP_EXT_ENV=0
+ARG SKIP_AP_GRAPHIC_ENV=1
+ARG SKIP_AP_COV_ENV=1
+ARG SKIP_AP_GIT_CHECK=1
+ARG DO_AP_STM_ENV=1
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV QT_X11_NO_MITSHM=1
+ENV LANG=en_US.UTF-8
+ENV ROS2_INSTALL_PATH=/opt/ros/$ROS_DISTRO
+ENV WORKDIR=/ws_ardupilot
+ENV ROS_DISTRO=humble
+WORKDIR ${WORKDIR}
+
+## Apt update upgrade install
+RUN apt update 1>/dev/null	&& apt upgrade -y 1>/dev/null 
+RUN apt install -y --no-install-recommends \
+	vim udev git sudo unzip curl cmake wget tmux \
+	ros-dev-tools bash-completion\
+	xauth xorg openbox python3-argcomplete python3 python3-pip \
+	apt-utils  1>/dev/null && \
+	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list' &&\
+	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && apt update && \
+	apt install gazebo9 libgazebo9-dev && gazebo --verbose
+
+# Set User	
+RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
+    useradd -l -m ${USER_NAME} -u ${USER_UID} -g ${USER_GID} -s /bin/bash && \
+	echo "ardupilot ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USER_NAME} && \
+	mkdir -p /ardupilot && \
+	chmod 0440 /etc/sudoers.d/${USER_NAME} && chown -R ${USER_NAME}:${USER_NAME} /${USER_NAME} &&\
+	usermod -a -G dialout ${USER_NAME}
+
+# Change user
+USER ${USER_NAME}
+
+## pip3 install 
+RUN pip install --upgrade pymavlink MAVProxy --user
+
+## Ardupilot Stuff
+RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7 && \
+	# git submodule update --init --recursive &&\
+	USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
+	SKIP_AP_EXT_ENV=$SKIP_AP_EXT_ENV SKIP_AP_GRAPHIC_ENV=$SKIP_AP_GRAPHIC_ENV SKIP_AP_COV_ENV=$SKIP_AP_COV_ENV SKIP_AP_GIT_CHECK=$SKIP_AP_GIT_CHECK \
+	DO_AP_STM_ENV=$DO_AP_STM_ENV \
+	AP_DOCKER_BUILD=1 \
+	USER=${USER_NAME} && \
+	sudo sed -i '/sudo usermod -a -G dialout $USER/d' ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
+	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y &&\
+	. ~/.profile
+
+RUN cd ~/ardupilot &&\
+	./waf configure copter && ./waf copter && \
+	./waf configure --board sitl 
+
+
+### Build WS ardupilot_gazebo
+RUN cd ~ && \
+	git clone https://github.com/khancyr/ardupilot_gazebo && \
+	cd ardupilot_gazebo && mkdir build && cd build &&\
+	source /opt/ros/$ROS_DISTRO/setup.bash &&\ 
+	source ~/.bashrc &&\
+	cmake .. && make -j4 && sudo make install &&\
+	# source /home/${USER_NAME}/.ardupilot_env &&\
+	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
+	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
+
+### Tumux conf
+RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
+	ln -s -f .tmux/.tmux.conf &&\
+	cp .tmux/.tmux.conf.local . &&\
+	echo "set -g mouse on" >> ~/.tmux.conf 
+
+### Write in ~/.bashrc
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
+	echo "source  ~/microros_ws/install/local_setup.bash" >> ~/.bashrc &&\
+	echo "source ~/.ardupilot_env" >> ~/.bashrc &&\
+	echo "source ~/ws_gz/install/setup.bash" >> ~/.bashrc
+	# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+# # TCP 5760 is what the sim exposes by default
+# EXPOSE 5760/tcp
+
+# # Variables for simulator
+# ENV INSTANCE 0
+# ENV LAT 42.3898
+# ENV LON -71.1476
+# ENV ALT 14
+# ENV DIR 270
+# ENV MODEL +
+# ENV SPEEDUP 1
+# ENV VEHICLE ArduCopter
+### Finilize
+RUN sudo rm -rf /var/lib/apt/lists/* 
