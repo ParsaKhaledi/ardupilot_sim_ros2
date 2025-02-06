@@ -44,7 +44,22 @@ RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
 USER ${USER_NAME}
 
 ## pip3 install 
-RUN pip install -U pymavlink MAVProxy importlib-metadata==4.13.0 setuptools --user
+RUN pip install pymavlink MAVProxy importlib-metadata==4.13.0 --user &&\
+	pip install --upgrade setuptools
+
+# Install Micro-XRCE-DDS-Agent
+RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
+	cd Micro-XRCE-DDS-Agent &&\
+	mkdir build && cd build &&\
+	cmake .. && make && sudo make install && \
+	sudo ldconfig /usr/local/lib/
+	
+# Clone & install Micro-XRCE-DDS-Gen dependancy
+RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+    && cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+    && ./gradlew assemble \
+    && export AP_ENV_LOC="/home/ardupilot/.ardupilot_env" \
+    && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
 
 ## Ardupilot Stuff
 RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7 && \
