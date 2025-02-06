@@ -32,7 +32,7 @@ RUN sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable
 
 RUN wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 
-RUN apt update && apt install -y gazebo11 libgazebo11-dev 
+RUN apt update && apt install -y gazebo11 libgazebo11-dev libgazeboX-dev
 
 		# ros-$ROS_DISTRO-rqt* ros-$ROS_DISTRO-rviz2* ros-dev-tools\
 # Set User	
@@ -83,13 +83,14 @@ RUN cd ~/ardupilot &&\
 
 ### Build WS ardupilot_gazebo
 RUN cd ~ && \
-	git clone https://github.com/khancyr/ardupilot_gazebo && \
+	git clone https://github.com/khancyr/ardupilot_gazebo -b gazebo11 && \
 	cd ardupilot_gazebo && mkdir build && cd build &&\
-	source ~/.bashrc &&\
+	# source ~/.bashrc &&\
 	cmake .. && make -j4 && sudo make install &&\
 	# source /home/${USER_NAME}/.ardupilot_env &&\
-	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
-	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
+	echo 'source /usr/share/gazebo/setup.sh' >> ~/.bashrc && \
+	
+	echo 'export GAZEBO_RESOURCE_PATH=~/ardupilot_gazebo/worlds:${GAZEBO_RESOURCE_PATH}' >> ~/.bashrc >> ~/.bashrc
 
 ### Tumux conf
 RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\

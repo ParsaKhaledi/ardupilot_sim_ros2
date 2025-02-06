@@ -2,7 +2,7 @@ version: '3.6'
 
 services:
   Ardupilot:
-    image: "alienkh/ardupilot_sim_ros2:legacy_${{ github.run_number }}"
+    image: "alienkh/ardupilot_sim_ros2:legacy_latest"
     container_name: ardupilot_sim
     hostname: ardupilot_sim
     tty: true
