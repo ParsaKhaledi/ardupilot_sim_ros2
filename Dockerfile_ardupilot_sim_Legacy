@@ -45,7 +45,7 @@ USER ${USER_NAME}
 
 ## pip3 install 
 RUN pip install pymavlink MAVProxy importlib-metadata==4.13.0 --user &&\
-	pip install --upgrade setuptools>=68.0.0 setuptools wheel twine check-wheel-contents
+	pip install --upgrade setuptools wheel twine check-wheel-contents
 
 # Install Micro-XRCE-DDS-Agent
 RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
