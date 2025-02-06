@@ -24,9 +24,9 @@ WORKDIR ${WORKDIR}
 RUN apt update 1>/dev/null	&& apt upgrade -y 1>/dev/null 
 RUN apt install -y --no-install-recommends \
 	vim udev git sudo unzip curl cmake wget tmux \
-	ros-dev-tools bash-completion cmake\
+	bash-completion cmake\
 	xauth xorg openbox python3-argcomplete python3 python3-pip \
-	# ros-$ROS_DISTRO-rqt* ros-$ROS_DISTRO-rviz2*\
+	# ros-$ROS_DISTRO-rqt* ros-$ROS_DISTRO-rviz2* ros-dev-tools\
 	apt-utils  1>/dev/null && \
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list' &&\
 	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && apt update && \
