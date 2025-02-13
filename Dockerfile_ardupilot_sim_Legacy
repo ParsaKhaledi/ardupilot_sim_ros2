@@ -83,8 +83,9 @@ RUN cd ~/ardupilot &&\
 
 ### Build WS ardupilot_gazebo
 RUN cd ~ && \
-	git clone https://github.com/khancyr/ardupilot_gazebo -b gazebo11 && \
-	cd ardupilot_gazebo && mkdir build && cd build &&\
+	git clone https://github.com/khancyr/ardupilot_gazebo && \
+	cd ardupilot_gazebo && git checkout gazebo11  &&\
+	mkdir build && cd build &&\
 	# source ~/.bashrc &&\
 	cmake .. && make -j4 && sudo make install &&\
 	# source /home/${USER_NAME}/.ardupilot_env &&\
