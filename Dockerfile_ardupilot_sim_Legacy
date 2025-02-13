@@ -32,7 +32,7 @@ RUN sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable
 
 RUN wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 
-RUN apt update && apt install -y gazebo libgazebo-dev libgazeboX-dev
+RUN apt update && apt install -y gazebo libgazebo-dev 
 
 		# ros-$ROS_DISTRO-rqt* ros-$ROS_DISTRO-rviz2* ros-dev-tools\
 # Set User	
