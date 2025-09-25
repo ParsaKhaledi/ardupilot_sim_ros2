@@ -67,20 +67,21 @@ RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-G
     && export AP_ENV_LOC="/home/ardupilot/.ardupilot_env" \
     && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
 
-	# Install Microros
-RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
-	mkdir -p ~/microros_ws/src && cd ~/microros_ws && \
-	git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup &&\
-	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
-	colcon build && source ~/microros_ws/install/local_setup.bash 
-
+# # Install Microros
+# RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
+# 	mkdir -p ~/microros_ws/src && cd ~/microros_ws && \
+# 	git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup &&\
+# 	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
+# 	colcon build && source ~/microros_ws/install/local_setup.bash 
+	
+## Install GZ dependensise with rosdep
+RUN export GZ_VERSION=harmonic && \
+	sudo bash -c 'wget https://raw.githubusercontent.com/osrf/osrf-rosdep/master/gz/00-gazebo.list -O /etc/ros/rosdep/sources.list.d/00-gazebo.list' &&\
+	rosdep update &&\
+	rosdep resolve gz-harmonic 
 ## Ardupilot Stuff
-RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.5.7 && \
+RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.6.2 && \
 	# git submodule update --init --recursive &&\
-	USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
-	SKIP_AP_EXT_ENV=$SKIP_AP_EXT_ENV SKIP_AP_GRAPHIC_ENV=$SKIP_AP_GRAPHIC_ENV SKIP_AP_COV_ENV=$SKIP_AP_COV_ENV SKIP_AP_GIT_CHECK=$SKIP_AP_GIT_CHECK \
-	DO_AP_STM_ENV=$DO_AP_STM_ENV \
-	AP_DOCKER_BUILD=1 \
 	USER=${USER_NAME} && \
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
 	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y &&\
@@ -89,16 +90,16 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 	# sudo ln -s /usr/bin/ccache arm-none-eabi-g++ &&\
 	# sudo ln -s /usr/bin/ccache arm-none-eabi-gcc # For ccache for faster builds
 
+	# USER=ardupilot && echo $USER && sudo usermod -a -G dialout ardupilot && \
+	# 	SKIP_AP_EXT_ENV=$SKIP_AP_EXT_ENV SKIP_AP_GRAPHIC_ENV=$SKIP_AP_GRAPHIC_ENV SKIP_AP_COV_ENV=$SKIP_AP_COV_ENV SKIP_AP_GIT_CHECK=$SKIP_AP_GIT_CHECK \
+	# DO_AP_STM_ENV=$DO_AP_STM_ENV \
+	# AP_DOCKER_BUILD=1 \
+
 RUN export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
 	cd ~/ardupilot && source ~/.ardupilot_env &&\
 	./waf configure copter --enable-dds && ./waf copter --enable-dds && \
 	./waf configure --board sitl --enable-dds
 
-## Install GZ dependensise with rosdep
-RUN export GZ_VERSION=harmonic && \
-	sudo bash -c 'wget https://raw.githubusercontent.com/osrf/osrf-rosdep/master/gz/00-gazebo.list -O /etc/ros/rosdep/sources.list.d/00-gazebo.list' &&\
-	rosdep update &&\
-	rosdep resolve gz-harmonic 
 
 
 ### Build WS ardupilot_gazebo
@@ -116,19 +117,19 @@ RUN cd ~ && \
 	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
 	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
 
-### Build WS ardupilot_gz
-RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
-	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src -b humble &&\
-	export GZ_VERSION=harmonic &&\
-	source ~/.ardupilot_env && source ~/microros_ws/install/local_setup.bash && source ~/.bashrc && \
-	source /opt/ros/$ROS_DISTRO/setup.bash && export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
-	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
-	python -m pip install --upgrade pip &&\
-	python -m pip install --upgrade setuptools wheel twine check-wheel-contents	&&\
-	pip3 install -U setuptools==75.8.0 uvloop==0.17.0 black==21.12b0 && \
-	colcon build --packages-up-to ardupilot_gz_bringup &&\
-	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
-	colcon test-result --all --verbose
+# ### Build WS ardupilot_gz
+# RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
+# 	vcs import --input https://raw.githubusercontent.com/ArduPilot/ardupilot_gz/main/ros2_gz.repos --recursive src -b humble &&\
+# 	export GZ_VERSION=harmonic &&\
+# 	source ~/.ardupilot_env && source ~/microros_ws/install/local_setup.bash && source ~/.bashrc && \
+# 	source /opt/ros/$ROS_DISTRO/setup.bash && export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
+# 	sudo apt update && rosdep update && rosdep install --from-paths src --ignore-src -y &&\
+# 	python -m pip install --upgrade pip &&\
+# 	python -m pip install --upgrade setuptools wheel twine check-wheel-contents	&&\
+# 	pip3 install -U setuptools==75.8.0 uvloop==0.17.0 black==21.12b0 && \
+# 	colcon build --packages-up-to ardupilot_gz_bringup &&\
+# 	colcon test --packages-select ardupilot_sitl ardupilot_dds_tests ardupilot_gazebo ardupilot_gz_applications ardupilot_gz_description ardupilot_gz_gazebo ardupilot_gz_bringup &&\
+# 	colcon test-result --all --verbose
 
 ### Tumux conf
 RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
