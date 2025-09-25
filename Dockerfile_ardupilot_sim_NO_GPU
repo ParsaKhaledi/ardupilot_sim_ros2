@@ -105,8 +105,7 @@ RUN export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
 ### Build WS ardupilot_gazebo
 RUN cd ~ && \
 	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
-	export GZ_VERSION=harmonic &&\
-	export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
+	
 	source /opt/ros/$ROS_DISTRO/setup.bash &&\ 
 	source ~/.bashrc &&\
 	source /home/${USER_NAME}/.ardupilot_env &&\
@@ -116,6 +115,8 @@ RUN cd ~ && \
 	make -j4 && sudo make install &&\
 	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
 	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
+	# export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
+	# export GZ_VERSION=harmonic &&\
 
 # ### Build WS ardupilot_gz
 # RUN mkdir -p ~/ws_gz/src && cd ~/ws_gz && \
