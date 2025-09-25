@@ -18,4 +18,5 @@ services:
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ./volume:/volume/
     command: /bin/bash -c "
-      ENTRYPOINT ["gazebo", "--verbose", "/worlds/iris_arducopter_runway.world"]"
+      sleep inf "
+      # ENTRYPOINT ["gazebo", "--verbose", "/worlds/iris_arducopter_runway.world"]
