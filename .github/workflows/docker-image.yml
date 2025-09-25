@@ -48,7 +48,7 @@ jobs:
           context: .
           push: true
           tags: ${{ env.Registery }}/${{ env.ImageName }}:${{ env.ImageTag }}
-          file: ./Dockerfile_ardupilot_sim_Legacy
+          file: ./Dockerfile_ardupilot_sim_NO_GPU
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
       
