@@ -7,7 +7,7 @@ on:
 
 env:
   Registery: docker.io
-  ImageName: alienkh/ardupilot_sim_ros2
+  ImageName: alienkh/ardupilot_sim_gz
   ImageTag: legacy_${{ github.run_number }}
 
 jobs:
