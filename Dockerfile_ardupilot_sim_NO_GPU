@@ -51,21 +51,21 @@ RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
 USER ${USER_NAME}
 
 ## pip3 install 
-RUN pip install --upgrade pymavlink MAVProxy --user
+RUN sudo pip3 install --upgrade pymavlink MAVProxy mavsdk mavsdk-python empy setuptools
 
 # Install Micro-XRCE-DDS-Agent
-RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
-	cd Micro-XRCE-DDS-Agent &&\
-	mkdir build && cd build &&\
-	cmake .. && make && sudo make install && \
-	sudo ldconfig /usr/local/lib/
+# RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
+# 	cd Micro-XRCE-DDS-Agent &&\
+# 	mkdir build && cd build &&\
+# 	cmake .. && make && sudo make install && \
+# 	sudo ldconfig /usr/local/lib/
 	
 # Clone & install Micro-XRCE-DDS-Gen dependancy
-RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
-    && cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
-    && ./gradlew assemble \
-    && export AP_ENV_LOC="/home/ardupilot/.ardupilot_env" \
-    && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
+# RUN git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+#     && cd /home/${USER_NAME}/Micro-XRCE-DDS-Gen \
+#     && ./gradlew assemble \
+#     && export AP_ENV_LOC="/home/ardupilot/.ardupilot_env" \
+#     && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
 
 # # Install Microros
 # RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
@@ -81,11 +81,12 @@ RUN export GZ_VERSION=harmonic && \
 	rosdep resolve gz-harmonic 
 ## Ardupilot Stuff
 RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git -b Copter-4.6.2 && \
-	# git submodule update --init --recursive &&\
 	USER=${USER_NAME} && \
 	sudo sed -i '/sudo usermod -a -G dialout $USER/d' ~/ardupilot/Tools/environment_install/install-prereqs-ubuntu.sh && \
 	cd ~/ardupilot && Tools/environment_install/install-prereqs-ubuntu.sh -y &&\
-	. ~/.profile
+	. ~/.profile &&\
+	./waf configure --board sitl && \
+	./waf copter
 	# cd /usr/lib/ccache &&\
 	# sudo ln -s /usr/bin/ccache arm-none-eabi-g++ &&\
 	# sudo ln -s /usr/bin/ccache arm-none-eabi-gcc # For ccache for faster builds
@@ -95,10 +96,10 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 	# DO_AP_STM_ENV=$DO_AP_STM_ENV \
 	# AP_DOCKER_BUILD=1 \
 
-RUN export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
-	cd ~/ardupilot && source ~/.ardupilot_env &&\
-	./waf configure copter  && ./waf copter && \
-	./waf configure --board sitl 
+# RUN export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
+# 	cd ~/ardupilot && source ~/.ardupilot_env &&\
+# 	./waf configure copter  && ./waf copter && \
+# 	./waf configure --board sitl 
 
 
 
@@ -112,8 +113,8 @@ RUN cd ~ && \
 	mkdir build && cd build &&\
 	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
 	make -j4 && sudo make install &&\
-	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=${WORKDIR}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}' >> ~/.bashrc && \
-	echo 'export GZ_SIM_RESOURCE_PATH=${WORKDIR}/ardupilot_gazebo/models:${WORKDIR}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}' >> ~/.bashrc
+	echo 'export GZ_SIM_RESOURCE_PATH=~/ardupilot_gazebo/models:~/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH' >> ~/.bashrc && \
+	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=~/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH' >> ~/.bashrc
 	# export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
 	# export GZ_VERSION=harmonic &&\
 
@@ -139,10 +140,11 @@ RUN cd ~ && git clone https://github.com/gpakosz/.tmux.git &&\
 
 ### Write in ~/.bashrc
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
-	echo "source  ~/microros_ws/install/local_setup.bash" >> ~/.bashrc &&\
-	echo "source ~/.ardupilot_env" >> ~/.bashrc &&\
-	echo "source ~/ws_gz/install/setup.bash" >> ~/.bashrc
+	echo "source ~/.ardupilot_env" >> ~/.bashrc 
+	# echo "source  ~/microros_ws/install/local_setup.bash" >> ~/.bashrc &&\
 	# export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+	# echo "source ~/ws_gz/install/setup.bash" >> ~/.bashrc
+
 
 # # TCP 5760 is what the sim exposes by default
 # EXPOSE 5760/tcp
