@@ -2,7 +2,8 @@ version: '3.6'
 
 services:
   GZ:
-    image: "alienkh/ardupilot_sim_gz:legacy_82"
+    image: "alienkh/ardupilot_sim_gz:legacy_83"
+    # image: "alienkh/ardupilot_sim_gz:legacy_82" # if 83 not work try this
     container_name: gz
     hostname: gz
     restart: unless-stopped
@@ -27,7 +28,8 @@ services:
       # ENTRYPOINT ["gazebo", "--verbose", "/worlds/iris_arducopter_runway.world"]
 
   Ardupilot:
-    image: "alienkh/ardupilot_sim_gz:legacy_82"
+    image: "alienkh/ardupilot_sim_gz:legacy_83"
+    # image: "alienkh/ardupilot_sim_gz:legacy_82" # if 83 not work try this
     container_name: ardupilot
     hostname: ardupilot
     tty: true
@@ -50,7 +52,8 @@ services:
       --sim-address=127.0.0.1 -I0  "
 
   MAVProxy:
-    image: "alienkh/ardupilot_sim_gz:legacy_82"
+    image: "alienkh/ardupilot_sim_gz:legacy_83"
+    # image: "alienkh/ardupilot_sim_gz:legacy_82" # if 83 not work try this
     container_name: MAVProxy
     hostname: MAVProxy
     tty: true
