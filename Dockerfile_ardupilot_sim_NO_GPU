@@ -106,15 +106,12 @@ RUN cd ~ && git clone --recurse-submodules https://github.com/ArduPilot/ardupilo
 ### Build WS ardupilot_gazebo
 RUN cd ~ && \
 	git clone https://github.com/ArduPilot/ardupilot_gazebo && \
-	echo "source ardupilot env" &&\
-	source /home/${USER_NAME}/.ardupilot_env &&\
-	echo "Change dir" &&\
 	cd ~/ardupilot_gazebo && \
 	mkdir build && cd build &&\
 	cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
 	make -j4 && sudo make install &&\
-	echo 'export GZ_SIM_RESOURCE_PATH=~/ardupilot_gazebo/models:~/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH' >> ~/.bashrc && \
-	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=~/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH' >> ~/.bashrc
+	echo 'export GZ_SIM_RESOURCE_PATH=/home/ardupilot/ardupilot_gazebo/models:~/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH' >> ~/.bashrc && \
+	echo 'export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/ardupilot/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH' >> ~/.bashrc
 	# export PATH=$PATH:/home/ardupilot/Micro-XRCE-DDS-Gen/scripts &&\
 	# export GZ_VERSION=harmonic &&\
 
