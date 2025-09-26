@@ -1,4 +1,12 @@
 # ardupilot_sim_gz
+Init:
+```
+xhost +local:docker
+docker compose -f docker-compose.yaml up -d
+```
+Using Compose file: 
+
+Using Manuall CMDs:
 Simulation:
 ```
 gz sim -v 4 -r ~/ardupilot_gazebo/worlds/iris_runway.sdf
