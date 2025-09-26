@@ -51,7 +51,7 @@ RUN groupadd ${USER_NAME} --gid ${USER_GID} && \
 USER ${USER_NAME}
 
 ## pip3 install 
-RUN sudo pip3 install --upgrade pymavlink MAVProxy mavsdk mavsdk-python empy setuptools
+RUN sudo pip3 install --upgrade pymavlink MAVProxy mavsdk mavsdk empy setuptools
 
 # Install Micro-XRCE-DDS-Agent
 # RUN cd ~ && git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git &&\
