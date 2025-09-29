@@ -18,12 +18,15 @@ services:
       - /tmp/.X11-unix/:/tmp/.X11-unix/
       - /dev:/dev/
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
-      - ./volume:/volume/
+      # - ./volume/worlds/:/home/ardupilot/ardupilot_gazebo/worlds/
+      # - ./volume/models/:/home/ardupilot/ardupilot_gazebo/models/
+      - ./volume/worlds/:/home/ardupilot/worlds/
+      - ./volume/models/gimbal_small_3d/model.sdf:/home/ardupilot/models/gimbal_small_3d/model.sdf
     command: /bin/bash -c "
       export GZ_SIM_RESOURCE_PATH=/home/ardupilot/ardupilot_gazebo/models:~/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH && \
       export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/ardupilot/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH && \
       cd ~/ardupilot_gazebo && \
-      gz sim -v 4 -r ~/ardupilot_gazebo/worlds/iris_runway.sdf  "
+      gz sim -v 4 -r -s --headless-rendering ~/ardupilot_gazebo/worlds/iris_runway.sdf  "
       # sleep inf "
       # ENTRYPOINT ["gazebo", "--verbose", "/worlds/iris_arducopter_runway.world"]
 
