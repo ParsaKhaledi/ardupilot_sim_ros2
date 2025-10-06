@@ -6,7 +6,7 @@ services:
     # image: "alienkh/ardupilot_sim_gz:legacy_82" # if 83 not work try this
     container_name: gz
     hostname: gz
-    restart: unless-stopped
+    # restart: unless-stopped
     tty: true
     privileged: true
     network_mode: "host"
@@ -18,15 +18,17 @@ services:
       - /tmp/.X11-unix/:/tmp/.X11-unix/
       - /dev:/dev/
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
-      # - ./volume/worlds/:/home/ardupilot/ardupilot_gazebo/worlds/
-      # - ./volume/models/:/home/ardupilot/ardupilot_gazebo/models/
-      - ./volume/worlds/:/home/ardupilot/worlds/
-      - ./volume/models/gimbal_small_3d/model.sdf:/home/ardupilot/models/gimbal_small_3d/model.sdf
+      # - ./volume/worlds/:/home/ardupilot/worlds/
+      - ./gz_ardupilot/models/:/home/ardupilot/ardupilot_gazebo/models/
+      - ./gz_ardupilot/worlds/:/home/ardupilot/ardupilot_gazebo/worlds
     command: /bin/bash -c "
       export GZ_SIM_RESOURCE_PATH=/home/ardupilot/ardupilot_gazebo/models:~/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH && \
       export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/ardupilot/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH && \
       cd ~/ardupilot_gazebo && \
-      gz sim -v 4 -r -s --headless-rendering ~/ardupilot_gazebo/worlds/iris_runway.sdf  "
+      
+      gz sim -v 4 --headless-rendering  /home/ardupilot/ardupilot_gazebo/worlds/iris_runway.sdf "
+      # -r -s 
+      # ~/ardupilot_gazebo/worlds/iris_runway.sdf
       # sleep inf "
       # ENTRYPOINT ["gazebo", "--verbose", "/worlds/iris_arducopter_runway.world"]
 
