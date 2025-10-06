@@ -10,7 +10,9 @@ services:
     tty: true
     privileged: true
     network_mode: "host"
-
+    # networks:
+    #   ardupilot:
+    #     ipv4_address: "10.20.10.2"
     environment:
       DISPLAY: ${DISPLAY}
       "XAUTHORITY": ${XAUTH}
@@ -26,7 +28,7 @@ services:
       export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/ardupilot/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH && \
       cd ~/ardupilot_gazebo && \
       
-      gz sim -v 4 --headless-rendering  /home/ardupilot/ardupilot_gazebo/worlds/iris_runway.sdf "
+      gz sim -v 4 -r --headless-rendering  /home/ardupilot/ardupilot_gazebo/worlds/iris_runway.sdf "
       # -r -s 
       # ~/ardupilot_gazebo/worlds/iris_runway.sdf
       # sleep inf "
@@ -40,6 +42,12 @@ services:
     tty: true
     privileged: true
     network_mode: "host"
+    # networks:
+    #   ardupilot:
+    #     ipv4_address: "10.20.10.3"
+    # ports: 
+    #   - "14550:14550/udp"
+    #   - "5760:5760/udp"
     restart: unless-stopped
     environment:
       DISPLAY: ${DISPLAY}
@@ -64,6 +72,9 @@ services:
     tty: true
     privileged: true
     network_mode: "host"
+    # networks:
+    #   ardupilot:
+    #     ipv4_address: "10.20.10.4"
     restart: unless-stopped
     environment:
       DISPLAY: ${DISPLAY}
@@ -77,3 +88,11 @@ services:
       sleep inf"
     # command: /bin/bash -c "
     #   cd ~/ && mavproxy.py --master=tcp:127.0.0.1:5760 --out=udp:127.0.0.1:14550 --map --console "
+
+
+networks:
+  ardupilot:
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.20.10.0/24"
