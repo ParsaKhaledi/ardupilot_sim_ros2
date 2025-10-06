@@ -84,10 +84,10 @@ services:
       - /dev:/dev/
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ./volume:/volume/
-    command: /bin/bash -c "
-      sleep inf"
     # command: /bin/bash -c "
-    #   cd ~/ && mavproxy.py --master=tcp:127.0.0.1:5760 --out=udp:127.0.0.1:14550 --map --console "
+    #   sleep inf"
+    command: /bin/bash -c "
+      cd ~/ && mavproxy.py --master=tcp:127.0.0.1:5760 --out=udp:127.0.0.1:14550 --map --console "
 
 
 networks:
