@@ -1,120 +1,69 @@
 name: Docker Image CI
 
 on:
+  pull_request:
+    branches: ["main"]
   push:
-    branches: [ "legacy" ]
-
+    branches: ["main", "sim-platform"]
+  workflow_dispatch:
 
 env:
-  Registery: docker.io
-  ImageName: alienkh/ardupilot_sim_gz
-  ImageTag: legacy_${{ github.run_number }}
+  REGISTRY: docker.io
+  IMAGE_NAME: alienkh/ardupilot_sim_ros2
 
 jobs:
-  build_and_push_docker_image:
+  docker-build:
+    name: Build Docker image
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
-      id-token: write
-      
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # - name: Cache Docker layers
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: /tmp/.buildx-cache
-      #     key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile_ardupilot_sim_NO_GPU', 'dockerFile/Dockerfile_ardupilot_sim_with_GPU') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-buildx-
+      - name: Build image (CI validation)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: local/ardupilot_sim_ros2:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  docker-publish:
+    name: Publish Docker image
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to DockerHub
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.Registery }}
+          registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Push Docker image without GPU
-        id: build-and-push-NoGPU
-        uses: docker/build-push-action@v2
+      - name: Build and push image
+        uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ env.Registery }}/${{ env.ImageName }}:${{ env.ImageTag }}
-          file: ./Dockerfile_ardupilot_sim_NO_GPU
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
-      
-      # - name: List cached Docker layers
-      #   run: ls -l /tmp/.buildx-cache
-        
-      # - name: Run Docker container
-      #   id: run-gazebo
-      #   run: |
-      #     docker run --name gazebo_container ardupilot_gazebo &
-      #     CONTAINER_ID=$(docker ps -qf "name=gazebo_container")
-      #     sleep 30  # Adjust the sleep duration as needed for the simulation to complete
-      #     docker logs $CONTAINER_ID
-      #     if docker wait $CONTAINER_ID | grep -q "0"; then
-      #       echo "Simulation succeeded."
-      #       docker stop $CONTAINER_ID
-      #       docker rm $CONTAINER_ID
-      #       echo "success" > result.txt
-      #     else
-      #       echo "Simulation failed."
-      #       docker stop $CONTAINER_ID
-      #       docker rm $CONTAINER_ID
-      #       echo "failure" > result.txt
-      #       exit 1
-      #     fi
-
-
-
-  # Uncomment and modify the following block for GPU-enabled builds
-  # build_and_push_docker_image_GPU_Enabled:
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #     packages: write
-  #     id-token: write
-  #
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
-  #
-  #     - name: Setup Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
-  #
-  #     - name: Cache Docker layers
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: /tmp/.buildx-cache
-          # key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile_ardupilot_sim_Legacy', 'dockerFile/Dockerfile_ardupilot_sim_Legacy') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-buildx-
-  #
-  #     - name: Login to DockerHub
-  #       if: github.event_name != 'pull_request'
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: ${{ env.Registery }}
-  #         username: ${{ secrets.DOCKER_USERNAME }}
-  #         password: ${{ secrets.DOCKER_PASSWORD }}
-  #
-  #     - name: Build and Push Docker image with GPU
-  #       id: build-and-push-GPU
-  #       uses: docker/build-push-action@v2
-  #       with:
-  #         context: .
-  #         push: true
-  #         tags: ${{ env.Registery }}/${{ env.ImageName }}:${{ env.ImageTag }}_GPU
-  #         file: ./dockerFile/Dockerfile_ardupilot_sim_with_GPU
-  #         cache-from: type=local,src=/tmp/.buildx-cache
-  #         cache-to: type=local,dest=/tmp/.buildx-cache
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:humble-harmonic-4.6.3-${{ github.run_number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
