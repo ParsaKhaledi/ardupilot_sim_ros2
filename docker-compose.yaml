@@ -1,98 +1,50 @@
-version: '3.6'
-
 services:
-  GZ:
-    image: "alienkh/ardupilot_sim_gz:legacy_83"
-    # image: "alienkh/ardupilot_sim_gz:legacy_82" # if 83 not work try this
-    container_name: gz
-    hostname: gz
-    # restart: unless-stopped
+  sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ardupilot_sim_ros2:humble-harmonic-4.6.3
+    container_name: ardupilot-sim
+    hostname: ardupilot-sim
     tty: true
     privileged: true
-    network_mode: "host"
-    # networks:
-    #   ardupilot:
-    #     ipv4_address: "10.20.10.2"
-    environment:
-      DISPLAY: ${DISPLAY}
-      "XAUTHORITY": ${XAUTH}
-    volumes:
-      - /tmp/.X11-unix/:/tmp/.X11-unix/
-      - /dev:/dev/
-      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
-      # - ./volume/worlds/:/home/ardupilot/worlds/
-      - ./gz_ardupilot/models/:/home/ardupilot/ardupilot_gazebo/models/
-      - ./gz_ardupilot/worlds/:/home/ardupilot/ardupilot_gazebo/worlds
-    command: /bin/bash -c "
-      export GZ_SIM_RESOURCE_PATH=/home/ardupilot/ardupilot_gazebo/models:~/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH && \
-      export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/ardupilot/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH && \
-      cd ~/ardupilot_gazebo && \
-      
-      gz sim -v 4 -r --headless-rendering  /home/ardupilot/ardupilot_gazebo/worlds/iris_runway.sdf "
-      # -r -s 
-      # ~/ardupilot_gazebo/worlds/iris_runway.sdf
-      # sleep inf "
-      # ENTRYPOINT ["gazebo", "--verbose", "/worlds/iris_arducopter_runway.world"]
-
-  Ardupilot:
-    image: "alienkh/ardupilot_sim_gz:legacy_83"
-    # image: "alienkh/ardupilot_sim_gz:legacy_82" # if 83 not work try this
-    container_name: ardupilot
-    hostname: ardupilot
-    tty: true
-    privileged: true
-    network_mode: "host"
-    # networks:
-    #   ardupilot:
-    #     ipv4_address: "10.20.10.3"
-    # ports: 
-    #   - "14550:14550/udp"
-    #   - "5760:5760/udp"
+    network_mode: host
     restart: unless-stopped
     environment:
       DISPLAY: ${DISPLAY}
-      "XAUTHORITY": ${XAUTH}
+      XAUTHORITY: ${XAUTH}
+      CAMERA_PROFILE: ${CAMERA_PROFILE:-gimbal}
+      MODEL_PROFILE: ${MODEL_PROFILE:-iris_with_gimbal}
+      WORLD_PROFILE: ${WORLD_PROFILE:-world-default}
+      SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
+      GZ_HEADLESS: ${GZ_HEADLESS:-false}
+      ENABLE_GST_STREAM: ${ENABLE_GST_STREAM:-false}
     volumes:
       - /tmp/.X11-unix/:/tmp/.X11-unix/
       - /dev:/dev/
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
-      - ./volume:/volume/
-    command: /bin/bash -c "
-      cd ~/ardupilot && \
-      ~/ardupilot/build/sitl/bin/arducopter -S \
-      --model JSON --speedup 1 \
-      --defaults Tools/autotest/default_params/copter.parm,Tools/autotest/default_params/gazebo-iris.parm \
-      --sim-address=127.0.0.1 -I0  "
+      - ./config:/workspace/config:ro
+      - ./scripts:/workspace/scripts:ro
+      - ./worlds:/workspace/worlds:ro
+      - ./volume:/volume
+    command: /workspace/scripts/sim.sh
 
-  MAVProxy:
-    image: "alienkh/ardupilot_sim_gz:legacy_83"
-    # image: "alienkh/ardupilot_sim_gz:legacy_82" # if 83 not work try this
-    container_name: MAVProxy
-    hostname: MAVProxy
+  mavproxy:
+    image: ardupilot_sim_ros2:humble-harmonic-4.6.3
+    container_name: ardupilot-mavproxy
+    hostname: ardupilot-mavproxy
     tty: true
     privileged: true
-    network_mode: "host"
-    # networks:
-    #   ardupilot:
-    #     ipv4_address: "10.20.10.4"
+    network_mode: host
     restart: unless-stopped
+    profiles: ["gcs"]
     environment:
       DISPLAY: ${DISPLAY}
-      "XAUTHORITY": ${XAUTH}
+      XAUTHORITY: ${XAUTH}
     volumes:
       - /tmp/.X11-unix/:/tmp/.X11-unix/
       - /dev:/dev/
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
-      - ./volume:/volume/
-    # command: /bin/bash -c "
-    #   sleep inf"
-    command: /bin/bash -c "
-      cd ~/ && mavproxy.py --master=tcp:127.0.0.1:5760 --out=udp:127.0.0.1:14550 --map --console "
-
-
-networks:
-  ardupilot:
-    ipam:
-      driver: default
-      config:
-        - subnet: "10.20.10.0/24"
+      - ./scripts:/workspace/scripts:ro
+      - ./volume:/volume
+    command: /workspace/scripts/mavproxy.sh
