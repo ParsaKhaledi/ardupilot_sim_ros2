@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: alienkh/ardupilot_sim_ros2
+  IMAGE_NAME: alienkh/ardupilot_sim_gz
 
 jobs:
   docker-build:
@@ -31,14 +31,14 @@ jobs:
           file: ./Dockerfile
           push: false
           tags: local/ardupilot_sim_ros2:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=ardupilot-sim-ros2
+          cache-to: type=gha,mode=max,scope=ardupilot-sim-ros2
 
   docker-publish:
     name: Publish Docker image
     runs-on: ubuntu-latest
     needs: docker-build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
     permissions:
       contents: read
       packages: write
@@ -56,6 +56,12 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Compute branch tag
+        id: vars
+        run: |
+          BRANCH_NAME="${GITHUB_REF_NAME//\//-}"
+          echo "branch_tag=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -64,6 +70,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:humble-harmonic-4.6.3-${{ github.run_number }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.branch_tag }}_${{ github.run_number }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:legacy_${{ github.run_number }}
+          cache-from: type=gha,scope=ardupilot-sim-ros2
+          cache-to: type=gha,mode=max,scope=ardupilot-sim-ros2
