@@ -8,7 +8,6 @@ ARG USER_UID=1000
 ARG USER_GID=1000
 ARG ARDUPILOT_VERSION=Copter-4.6.3
 ARG ARDUPILOT_GAZEBO_BRANCH=ros2
-ARG ROS_GZ_BRANCH=humble
 ARG GZ_VERSION=harmonic
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -58,8 +57,6 @@ RUN apt update && apt upgrade -y && apt install -y --no-install-recommends \
     libgz-sim8-dev \
     ros-${ROS_DISTRO}-desktop \
     ros-${ROS_DISTRO}-geographic-msgs \
-    ros-${ROS_DISTRO}-ros-gz-bridge \
-    ros-${ROS_DISTRO}-ros-gz-image \
     ros-${ROS_DISTRO}-ros-gzharmonic \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp && \
     rm -rf /var/lib/apt/lists/*
