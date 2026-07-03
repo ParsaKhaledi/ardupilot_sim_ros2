@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 mavproxy.py \
   --master=tcp:127.0.0.1:5760 \

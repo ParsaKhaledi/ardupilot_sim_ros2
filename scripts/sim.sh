@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
+export AMENT_TRACE_SETUP_FILES="${AMENT_TRACE_SETUP_FILES:-}"
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 
 export GZ_VERSION="${GZ_VERSION:-harmonic}"
@@ -14,19 +15,27 @@ SIM_SPEEDUP="${SIM_SPEEDUP:-1}"
 GZ_HEADLESS="${GZ_HEADLESS:-false}"
 ENABLE_GST_STREAM="${ENABLE_GST_STREAM:-false}"
 
-WORLD_FILE="/home/ardupilot/ardupilot_gazebo/worlds/iris_runway.sdf"
-BRIDGE_FILE="/workspace/config/camera_bridge_gimbal.yaml"
 DEFAULTS_FILE="Tools/autotest/default_params/copter.parm,/home/ardupilot/ardupilot_gazebo/config/gazebo-iris-gimbal.parm"
+ROBOT_NAME="${MODEL_PROFILE}"
+CAMERA_LINK="pitch_link"
+BRIDGE_FILE="/tmp/ros_gz_bridge.yaml"
 
 case "${WORLD_PROFILE}" in
   world-default)
+    WORLD_FILE="/workspace/worlds/iris_simple.sdf"
+    WORLD_NAME="iris_simple"
+    ;;
+  world-runway)
     WORLD_FILE="/home/ardupilot/ardupilot_gazebo/worlds/iris_runway.sdf"
+    WORLD_NAME="iris_runway"
     ;;
   world-alt)
     WORLD_FILE="/home/ardupilot/ardupilot_gazebo/worlds/iris_warehouse.sdf"
+    WORLD_NAME="iris_warehouse"
     ;;
   world-aruco)
     WORLD_FILE="/workspace/worlds/iris_aruco_4tags.sdf"
+    WORLD_NAME="iris_aruco_4tags"
     ;;
   *)
     echo "Unsupported WORLD_PROFILE: ${WORLD_PROFILE}"
@@ -35,20 +44,21 @@ case "${WORLD_PROFILE}" in
 esac
 
 if [[ "${CAMERA_PROFILE}" == "fixed-down" ]]; then
-  BRIDGE_FILE="/workspace/config/camera_bridge_1d.yaml"
+  CAMERA_LINK="pitch_link"
 fi
 
-if [[ ! -f "${BRIDGE_FILE}" ]]; then
-  echo "Bridge config missing: ${BRIDGE_FILE}"
-  exit 1
-fi
+export WORLD_NAME ROBOT_NAME CAMERA_LINK
+sed -e "s/\${WORLD_NAME}/${WORLD_NAME}/g" \
+    -e "s/\${ROBOT_NAME}/${ROBOT_NAME}/g" \
+    -e "s/\${CAMERA_LINK}/${CAMERA_LINK}/g" \
+  /workspace/config/bridge_template.yaml > "${BRIDGE_FILE}"
 
 GZ_ARGS=(-v4 -r "${WORLD_FILE}")
 if [[ "${GZ_HEADLESS}" == "true" ]]; then
   GZ_ARGS=(-v4 -r --headless-rendering "${WORLD_FILE}")
 fi
 
-echo "Launching Gazebo world: ${WORLD_FILE}"
+echo "Launching Gazebo world: ${WORLD_FILE} (world=${WORLD_NAME}, model=${ROBOT_NAME})"
 gz sim "${GZ_ARGS[@]}" &
 GZ_PID=$!
 
@@ -67,7 +77,7 @@ SITL_PID=$!
 sleep 4
 
 if [[ "${ENABLE_GST_STREAM}" == "true" ]]; then
-  CAMERA_ENABLE_TOPIC="$(gz topic -l | rg "/enable_streaming$" | head -n 1 || true)"
+  CAMERA_ENABLE_TOPIC="$(gz topic -l | grep "/enable_streaming$" | head -n 1 || true)"
   if [[ -n "${CAMERA_ENABLE_TOPIC}" ]]; then
     echo "Enabling streaming on topic: ${CAMERA_ENABLE_TOPIC}"
     gz topic -t "${CAMERA_ENABLE_TOPIC}" -m gz.msgs.Boolean -p "data: 1" || true
