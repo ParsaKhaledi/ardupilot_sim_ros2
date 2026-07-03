@@ -25,6 +25,7 @@ RUN apt update && apt upgrade -y && apt install -y --no-install-recommends \
     build-essential \
     cmake \
     curl \
+    gettext-base \
     git \
     gnupg2 \
     gstreamer1.0-gl \
