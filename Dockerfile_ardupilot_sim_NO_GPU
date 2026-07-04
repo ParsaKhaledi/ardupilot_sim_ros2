@@ -26,7 +26,7 @@ RUN apt install -y --no-install-recommends \
 	vim udev git sudo unzip curl cmake wget tmux \
 	ros-dev-tools bash-completion\
 	gnupg2 lsb-release socat \
-	tzdata default-jre \
+	tzdata default-jre libgtk-3-dev \
 	xauth xorg openbox python3-argcomplete python3 python3-pip \
 	apt-utils  1>/dev/null && \
 	wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
@@ -66,6 +66,8 @@ RUN sudo pip3 install --upgrade pymavlink MAVProxy mavsdk mavsdk empy setuptools
 #     && ./gradlew assemble \
 #     && export AP_ENV_LOC="/home/ardupilot/.ardupilot_env" \
 #     && echo "export PATH=\$PATH:$PWD/scripts" >> $AP_ENV_LOC
+
+# # Install Microros
 
 # # Install Microros
 # RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
