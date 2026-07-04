@@ -48,7 +48,7 @@ Pin a specific tag in `.env`:
 
 ```bash
 DOCKER_IMAGE=alienkh/ardupilot_sim_ros2
-DOCKER_IMAGE_TAG=legacy_79
+DOCKER_IMAGE_TAG=42
 ```
 
 Then:
@@ -83,7 +83,7 @@ Set these in [`.env`](.env.example):
 | Variable | Values | Effect |
 |----------|--------|--------|
 | `DOCKER_IMAGE` | `alienkh/ardupilot_sim_ros2` | Docker Hub repository |
-| `DOCKER_IMAGE_TAG` | e.g. `latest`, `legacy_79` | Image tag to pull/run |
+| `DOCKER_IMAGE_TAG` | e.g. `latest`, `42` (GitHub run number) | Image tag to pull/run |
 | `CAMERA_PROFILE` | `gimbal`, `fixed-down` | Gimbal-only: nadir preset and RC control (`iris_with_gimbal` only) |
 | `WORLD_PROFILE` | `world-default`, `world-runway`, `world-alt`, `world-aruco` | World selection in `sim.sh` |
 | `MODEL_PROFILE` | `iris_with_down_camera`, `iris_with_gimbal` | Drone model (default: fixed belly camera) |
@@ -243,4 +243,4 @@ Marker textures:
 - `network_mode: host` is required for Gazebo ↔ SITL FDM and MAVLink.
 - Gazebo models and worlds were consolidated from the former `gz_ardupilot/` tree into top-level `models/` and `worlds/`.
 - `world-alt` (`iris_warehouse`) is still loaded from the `ardupilot_gazebo` clone baked into the Docker image.
-- CI publishes tags like `latest`, `<branch>_<run>`, and `legacy_<run>` to Docker Hub.
+- CI publishes `latest` and `<run_number>` (GitHub Actions build count) to Docker Hub when `Dockerfile` or the workflow changes on `main`.

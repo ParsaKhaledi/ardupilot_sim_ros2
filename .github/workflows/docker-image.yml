@@ -3,8 +3,14 @@ name: Docker Image CI
 on:
   pull_request:
     branches: ["main"]
+    paths:
+      - Dockerfile
+      - .github/workflows/docker-image.yml
   push:
-    branches: ["main", "sim-platform"]
+    branches: ["main"]
+    paths:
+      - Dockerfile
+      - .github/workflows/docker-image.yml
   workflow_dispatch:
 
 env:
@@ -33,12 +39,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Compute branch tag
-        id: vars
-        run: |
-          BRANCH_NAME="${GITHUB_REF_NAME//\//-}"
-          echo "branch_tag=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
-
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -47,7 +47,6 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.branch_tag }}_${{ github.run_number }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:legacy_${{ github.run_number }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}
           cache-from: type=gha,scope=ardupilot-sim-ros2
           cache-to: type=gha,mode=max,scope=ardupilot-sim-ros2
