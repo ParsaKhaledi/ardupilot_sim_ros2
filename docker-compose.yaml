@@ -17,7 +17,9 @@ services:
       MODEL_PROFILE: ${MODEL_PROFILE:-iris_with_gimbal}
       WORLD_PROFILE: ${WORLD_PROFILE:-world-default}
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
+      PHYSICS_STEP_SIZE: ${PHYSICS_STEP_SIZE:-0.002}
       GZ_HEADLESS: ${GZ_HEADLESS:-false}
+      GZ_SERVER_ONLY: ${GZ_SERVER_ONLY:-false}
       ENABLE_GST_STREAM: ${ENABLE_GST_STREAM:-false}
     volumes:
       - /tmp/.X11-unix/:/tmp/.X11-unix/
@@ -48,3 +50,25 @@ services:
       - ./scripts:/workspace/scripts:ro
       - ./volume:/volume
     command: /workspace/scripts/mavproxy.sh
+
+  rqt:
+    image: ${DOCKER_IMAGE:-alienkh/ardupilot_sim_ros2}:${DOCKER_IMAGE_TAG:-latest}
+    container_name: ardupilot-rqt
+    hostname: ardupilot-rqt
+    tty: true
+    network_mode: host
+    restart: unless-stopped
+    profiles: ["gcs"]
+    depends_on:
+      - sim
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      XAUTHORITY: ${XAUTH:-/tmp/.docker.xauth}
+      QT_X11_NO_MITSHM: "1"
+      CAMERA_TOPIC: ${CAMERA_TOPIC:-/camera/image}
+      RQT_WAIT_SEC: ${RQT_WAIT_SEC:-120}
+    volumes:
+      - /tmp/.X11-unix/:/tmp/.X11-unix/
+      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+      - ./scripts:/workspace/scripts:ro
+    command: /workspace/scripts/rqt_image_view.sh

@@ -3,7 +3,7 @@
 Dockerized ArduPilot + Gazebo Harmonic simulation with:
 - Iris quadrotor and camera (gimbal or downward preset)
 - ROS 2 bridging via `ros_gz_bridge` (camera, IMU, odometry, TF, sensors)
-- optional MAVProxy GCS container
+- optional MAVProxy GCS + rqt camera viewer (`gcs` profile)
 - selectable world/camera runtime profiles
 
 The `sim` service runs [`scripts/sim.sh`](scripts/sim.sh), which starts:
@@ -52,20 +52,17 @@ docker compose up -d
 docker compose up --build -d
 ```
 
-## Startup with MAVProxy GCS
+## Startup with MAVProxy GCS and camera viewer
 
-MAVProxy runs in a separate optional service (`profiles: gcs`):
+MAVProxy and `rqt_image_view` run together under the `gcs` profile:
 
 ```bash
 docker compose --profile gcs up -d
 ```
 
-Or pull/build and start both:
-
-```bash
-docker compose pull
-docker compose --profile gcs up -d
-```
+This starts:
+- **mavproxy** — flight control console/map
+- **rqt** — live `/camera/image` viewer
 
 ## Runtime profiles
 
@@ -78,9 +75,13 @@ Set these in [`.env`](.env.example):
 | `CAMERA_PROFILE` | `gimbal`, `fixed-down` | Gimbal camera vs nadir preset (RC7 via MAVProxy) |
 | `WORLD_PROFILE` | `world-default`, `world-runway`, `world-alt`, `world-aruco` | World selection in `sim.sh` |
 | `MODEL_PROFILE` | `iris_with_gimbal` | Reserved (model comes from upstream world SDF) |
-| `GZ_HEADLESS` | `true`, `false` | Add `--headless-rendering` to Gazebo |
+| `GZ_HEADLESS` | `true`, `false` | Offscreen rendering (no GUI window, camera still works) |
+| `GZ_SERVER_ONLY` | `true`, `false` | Gazebo server only (`-s`), best RTF |
 | `ENABLE_GST_STREAM` | `true`, `false` | Enable GStreamer UDP H.264 on port 5600 |
 | `SIM_SPEEDUP` | e.g. `1` | SITL speed multiplier |
+| `PHYSICS_STEP_SIZE` | `0.002` (default), `0.001`, `0.003` | Gazebo physics step (seconds) |
+| `CAMERA_TOPIC` | `/camera/image` | ROS 2 image topic for rqt viewer |
+| `RQT_WAIT_SEC` | e.g. `120` | Seconds to wait for camera topic before rqt exits |
 
 World profiles (`WORLD_PROFILE`):
 - `world-default` → local `worlds/iris_simple.sdf` (ground plane + iris, minimal)
@@ -95,6 +96,31 @@ CAMERA_PROFILE=fixed-down
 WORLD_PROFILE=world-aruco
 docker compose up -d
 ```
+
+## Performance / real-time factor (RTF)
+
+RTF is how fast simulation runs vs wall clock (`1.0` = real-time). At `PHYSICS_STEP_SIZE=0.001` you need **1000 physics steps per simulated second**, which is heavy with GUI + camera + Iris plugins — ~50% RTF is common.
+
+| Setting | Effect on RTF | Stability |
+|---------|---------------|-----------|
+| `PHYSICS_STEP_SIZE=0.001` | Slowest (~50% typical) | Most stable |
+| `PHYSICS_STEP_SIZE=0.002` | **Default** — ~2× faster physics | Usually stable for Iris |
+| `PHYSICS_STEP_SIZE=0.003` | Faster | May need testing |
+| `PHYSICS_STEP_SIZE=0.01` | Fast but **ODE crash risk** | Unstable |
+
+To push RTF toward 100% without going to `0.01`:
+
+```bash
+# Best RTF while keeping camera (no Gazebo GUI window)
+PHYSICS_STEP_SIZE=0.002
+GZ_SERVER_ONLY=true
+docker compose up -d
+```
+
+Other tips:
+- Ensure GPU/OpenGL acceleration (not software rendering)
+- Use `world-default` (`iris_simple`) instead of `world-runway` / `world-alt`
+- Disable shadows already done in `iris_simple.sdf`
 
 ## Useful commands
 
@@ -138,7 +164,7 @@ On the host (with `network_mode: host`), topics are also visible if ROS 2 is sou
 
 ## MAVProxy
 
-When `--profile gcs` is used, MAVProxy connects automatically via [`scripts/mavproxy.sh`](scripts/mavproxy.sh):
+When `--profile gcs` is used, MAVProxy and rqt start automatically via [`scripts/mavproxy.sh`](scripts/mavproxy.sh) and [`scripts/rqt_image_view.sh`](scripts/rqt_image_view.sh).
 
 ```text
 tcp:127.0.0.1:5760  →  udp:127.0.0.1:14550

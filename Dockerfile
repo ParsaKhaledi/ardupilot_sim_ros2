@@ -59,6 +59,7 @@ RUN apt update && apt upgrade -y && apt install -y --no-install-recommends \
     ros-${ROS_DISTRO}-desktop \
     ros-${ROS_DISTRO}-geographic-msgs \
     ros-${ROS_DISTRO}-ros-gzharmonic \
+    ros-${ROS_DISTRO}-rqt-image-view \
     ros-${ROS_DISTRO}-rmw-cyclonedds-cpp && \
     rm -rf /var/lib/apt/lists/*
 

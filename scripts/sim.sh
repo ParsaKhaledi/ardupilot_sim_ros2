@@ -12,7 +12,9 @@ CAMERA_PROFILE="${CAMERA_PROFILE:-gimbal}"
 WORLD_PROFILE="${WORLD_PROFILE:-world-default}"
 MODEL_PROFILE="${MODEL_PROFILE:-iris_with_gimbal}"
 SIM_SPEEDUP="${SIM_SPEEDUP:-1}"
+PHYSICS_STEP_SIZE="${PHYSICS_STEP_SIZE:-0.002}"
 GZ_HEADLESS="${GZ_HEADLESS:-false}"
+GZ_SERVER_ONLY="${GZ_SERVER_ONLY:-false}"
 ENABLE_GST_STREAM="${ENABLE_GST_STREAM:-false}"
 
 DEFAULTS_FILE="Tools/autotest/default_params/copter.parm,/home/ardupilot/ardupilot_gazebo/config/gazebo-iris-gimbal.parm"
@@ -53,12 +55,18 @@ sed -e "s/\${WORLD_NAME}/${WORLD_NAME}/g" \
     -e "s/\${CAMERA_LINK}/${CAMERA_LINK}/g" \
   /workspace/config/bridge_template.yaml > "${BRIDGE_FILE}"
 
-GZ_ARGS=(-v4 -r "${WORLD_FILE}")
-if [[ "${GZ_HEADLESS}" == "true" ]]; then
-  GZ_ARGS=(-v4 -r --headless-rendering "${WORLD_FILE}")
+WORLD_RUNTIME="/tmp/world_runtime.sdf"
+cp "${WORLD_FILE}" "${WORLD_RUNTIME}"
+sed -i "s|<max_step_size>.*</max_step_size>|<max_step_size>${PHYSICS_STEP_SIZE}</max_step_size>|" "${WORLD_RUNTIME}"
+
+GZ_ARGS=(-v4 -r "${WORLD_RUNTIME}")
+if [[ "${GZ_SERVER_ONLY}" == "true" ]]; then
+  GZ_ARGS=(-v4 -s -r "${WORLD_RUNTIME}")
+elif [[ "${GZ_HEADLESS}" == "true" ]]; then
+  GZ_ARGS=(-v4 -r --headless-rendering "${WORLD_RUNTIME}")
 fi
 
-echo "Launching Gazebo world: ${WORLD_FILE} (world=${WORLD_NAME}, model=${ROBOT_NAME})"
+echo "Launching Gazebo (server_only=${GZ_SERVER_ONLY}, headless=${GZ_HEADLESS}): ${WORLD_RUNTIME}"
 gz sim "${GZ_ARGS[@]}" &
 GZ_PID=$!
 
