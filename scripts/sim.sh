@@ -4,23 +4,45 @@ set -eo pipefail
 export AMENT_TRACE_SETUP_FILES="${AMENT_TRACE_SETUP_FILES:-}"
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 
+# CycloneDDS works across Docker containers; FastDDS shared-memory does not.
+export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}"
+
 export GZ_VERSION="${GZ_VERSION:-harmonic}"
 export GZ_SIM_SYSTEM_PLUGIN_PATH="/home/ardupilot/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH:-}"
-export GZ_SIM_RESOURCE_PATH="/home/ardupilot/ardupilot_gazebo/models:/home/ardupilot/ardupilot_gazebo/worlds:/workspace/worlds:${GZ_SIM_RESOURCE_PATH:-}"
+export GZ_SIM_RESOURCE_PATH="/workspace/models:/workspace/worlds:/home/ardupilot/ardupilot_gazebo/models:/home/ardupilot/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH:-}"
 
 CAMERA_PROFILE="${CAMERA_PROFILE:-gimbal}"
 WORLD_PROFILE="${WORLD_PROFILE:-world-default}"
-MODEL_PROFILE="${MODEL_PROFILE:-iris_with_gimbal}"
+MODEL_PROFILE="${MODEL_PROFILE:-iris_with_down_camera}"
 SIM_SPEEDUP="${SIM_SPEEDUP:-1}"
 PHYSICS_STEP_SIZE="${PHYSICS_STEP_SIZE:-0.002}"
 GZ_HEADLESS="${GZ_HEADLESS:-false}"
 GZ_SERVER_ONLY="${GZ_SERVER_ONLY:-false}"
 ENABLE_GST_STREAM="${ENABLE_GST_STREAM:-false}"
 
-DEFAULTS_FILE="Tools/autotest/default_params/copter.parm,/home/ardupilot/ardupilot_gazebo/config/gazebo-iris-gimbal.parm"
+DEFAULTS_FILE="Tools/autotest/default_params/copter.parm"
 ROBOT_NAME="${MODEL_PROFILE}"
-CAMERA_LINK="pitch_link"
+CAMERA_LINK="down_camera_link"
+USE_GIMBAL_NADIR=false
 BRIDGE_FILE="/tmp/ros_gz_bridge.yaml"
+
+case "${MODEL_PROFILE}" in
+  iris_with_down_camera)
+    CAMERA_LINK="down_camera_link"
+    ;;
+  iris_with_gimbal)
+    DEFAULTS_FILE="Tools/autotest/default_params/copter.parm,/home/ardupilot/ardupilot_gazebo/config/gazebo-iris-gimbal.parm,/workspace/config/gazebo-camera-nadir.parm"
+    CAMERA_LINK="pitch_link"
+    USE_GIMBAL_NADIR=true
+    ;;
+  *)
+    echo "Unsupported MODEL_PROFILE: ${MODEL_PROFILE}"
+    exit 1
+    ;;
+esac
+
+CAMERA_GZ_IMAGE_TOPIC="/camera/rgb/image_raw"
+CAMERA_GZ_INFO_TOPIC="/camera/rgb/camera_info"
 
 case "${WORLD_PROFILE}" in
   world-default)
@@ -28,7 +50,7 @@ case "${WORLD_PROFILE}" in
     WORLD_NAME="iris_simple"
     ;;
   world-runway)
-    WORLD_FILE="/home/ardupilot/ardupilot_gazebo/worlds/iris_runway.sdf"
+    WORLD_FILE="/workspace/worlds/iris_runway.sdf"
     WORLD_NAME="iris_runway"
     ;;
   world-alt)
@@ -45,19 +67,23 @@ case "${WORLD_PROFILE}" in
     ;;
 esac
 
-if [[ "${CAMERA_PROFILE}" == "fixed-down" ]]; then
-  CAMERA_LINK="pitch_link"
-fi
+# Gimbal-only: RC7 1300 => mount pitch -90 deg (nadir).
+GIMBAL_PITCH_NADIR_PWM=1300
+GIMBAL_PITCH_NADIR_RAD=0.0
 
-export WORLD_NAME ROBOT_NAME CAMERA_LINK
+export WORLD_NAME ROBOT_NAME CAMERA_LINK CAMERA_GZ_IMAGE_TOPIC CAMERA_GZ_INFO_TOPIC
 sed -e "s/\${WORLD_NAME}/${WORLD_NAME}/g" \
     -e "s/\${ROBOT_NAME}/${ROBOT_NAME}/g" \
     -e "s/\${CAMERA_LINK}/${CAMERA_LINK}/g" \
+    -e "s|\${CAMERA_GZ_IMAGE_TOPIC}|${CAMERA_GZ_IMAGE_TOPIC}|g" \
+    -e "s|\${CAMERA_GZ_INFO_TOPIC}|${CAMERA_GZ_INFO_TOPIC}|g" \
   /workspace/config/bridge_template.yaml > "${BRIDGE_FILE}"
 
 WORLD_RUNTIME="/tmp/world_runtime.sdf"
 cp "${WORLD_FILE}" "${WORLD_RUNTIME}"
 sed -i "s|<max_step_size>.*</max_step_size>|<max_step_size>${PHYSICS_STEP_SIZE}</max_step_size>|" "${WORLD_RUNTIME}"
+sed -i "s|model://iris_with_gimbal|model://${MODEL_PROFILE}|g" "${WORLD_RUNTIME}"
+sed -i "s|model://iris_with_down_camera|model://${MODEL_PROFILE}|g" "${WORLD_RUNTIME}"
 
 GZ_ARGS=(-v4 -r "${WORLD_RUNTIME}")
 if [[ "${GZ_SERVER_ONLY}" == "true" ]]; then
@@ -66,7 +92,7 @@ elif [[ "${GZ_HEADLESS}" == "true" ]]; then
   GZ_ARGS=(-v4 -r --headless-rendering "${WORLD_RUNTIME}")
 fi
 
-echo "Launching Gazebo (server_only=${GZ_SERVER_ONLY}, headless=${GZ_HEADLESS}): ${WORLD_RUNTIME}"
+echo "Launching Gazebo (model=${MODEL_PROFILE}, server_only=${GZ_SERVER_ONLY}, headless=${GZ_HEADLESS}): ${WORLD_RUNTIME}"
 gz sim "${GZ_ARGS[@]}" &
 GZ_PID=$!
 
@@ -94,16 +120,45 @@ if [[ "${ENABLE_GST_STREAM}" == "true" ]]; then
   fi
 fi
 
-echo "Starting ros_gz_bridge with config: ${BRIDGE_FILE}"
+echo "Waiting for Gazebo camera topic: ${CAMERA_GZ_IMAGE_TOPIC}"
+camera_deadline=$((SECONDS + 60))
+while (( SECONDS < camera_deadline )); do
+  if gz topic -l 2>/dev/null | grep -Fxq "${CAMERA_GZ_IMAGE_TOPIC}"; then
+    echo "Gazebo camera topic is available."
+    break
+  fi
+  sleep 2
+done
+if ! gz topic -l 2>/dev/null | grep -Fxq "${CAMERA_GZ_IMAGE_TOPIC}"; then
+  echo "WARNING: Gazebo camera topic ${CAMERA_GZ_IMAGE_TOPIC} not found; starting bridge anyway."
+fi
+
+echo "Starting ros_gz_bridge (RMW=${RMW_IMPLEMENTATION}) with config: ${BRIDGE_FILE}"
 ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:="${BRIDGE_FILE}" &
 BRIDGE_PID=$!
 
-if [[ "${CAMERA_PROFILE}" == "fixed-down" ]]; then
-  echo "Applying runtime downward camera preset (MAVProxy RC7)."
+sleep 3
+if timeout 5 ros2 topic hz "/camera/rgb/image_raw" 2>/dev/null | grep -q "average rate"; then
+  echo "ROS camera bridge OK: /camera/rgb/image_raw is publishing."
+else
+  echo "WARNING: /camera/rgb/image_raw not publishing yet; check bridge config and Gazebo rendering."
+fi
+
+if [[ "${USE_GIMBAL_NADIR}" == "true" ]]; then
+  apply_gimbal_nadir() {
+    echo "Setting gimbal pitch to nadir (RC7=${GIMBAL_PITCH_NADIR_PWM}, ${GIMBAL_PITCH_NADIR_RAD} rad)."
+    gz topic -t /gimbal/cmd_pitch -m gz.msgs.Double -p "data: ${GIMBAL_PITCH_NADIR_RAD}" || true
+  }
+
   (
-    sleep 12
-    mavproxy.py --master=tcp:127.0.0.1:5760 --cmd="rc 7 1100" --daemon
-  ) || true
+    sleep 10
+    apply_gimbal_nadir
+    if [[ "${CAMERA_PROFILE}" == "fixed-down" ]]; then
+      exec python3 /workspace/scripts/set_gimbal_nadir.py tcp:127.0.0.1:5760 "${GIMBAL_PITCH_NADIR_PWM}" 0.5 0
+    else
+      python3 /workspace/scripts/set_gimbal_nadir.py tcp:127.0.0.1:5760 "${GIMBAL_PITCH_NADIR_PWM}" 0.5 15 &
+    fi
+  ) &
 fi
 
 trap 'kill ${BRIDGE_PID} ${SITL_PID} ${GZ_PID} 2>/dev/null || true' INT TERM EXIT

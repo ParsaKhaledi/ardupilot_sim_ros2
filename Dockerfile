@@ -97,9 +97,17 @@ RUN git clone https://github.com/ArduPilot/ardupilot_gazebo.git -b ${ARDUPILOT_G
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
     echo "export GZ_VERSION=${GZ_VERSION}" >> ~/.bashrc && \
     echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/${USER_NAME}/ardupilot_gazebo/build:\${GZ_SIM_SYSTEM_PLUGIN_PATH}" >> ~/.bashrc && \
-    echo "export GZ_SIM_RESOURCE_PATH=/home/${USER_NAME}/ardupilot_gazebo/models:/home/${USER_NAME}/ardupilot_gazebo/worlds:\${GZ_SIM_RESOURCE_PATH}" >> ~/.bashrc
+    echo "export GZ_SIM_RESOURCE_PATH=/workspace/models:/workspace/worlds:/home/${USER_NAME}/ardupilot_gazebo/models:/home/${USER_NAME}/ardupilot_gazebo/worlds:\${GZ_SIM_RESOURCE_PATH}" >> ~/.bashrc
+
+USER root
+RUN mkdir -p /workspace/models /workspace/worlds
+COPY models/ /workspace/models/
+COPY worlds/ /workspace/worlds/
+RUN chown -R ${USER_NAME}:${USER_NAME} /workspace
+
+USER ${USER_NAME}
 
 ENV GZ_SIM_SYSTEM_PLUGIN_PATH=/home/${USER_NAME}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}
-ENV GZ_SIM_RESOURCE_PATH=/home/${USER_NAME}/ardupilot_gazebo/models:/home/${USER_NAME}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}
+ENV GZ_SIM_RESOURCE_PATH=/workspace/models:/workspace/worlds:/home/${USER_NAME}/ardupilot_gazebo/models:/home/${USER_NAME}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}
 
 ENTRYPOINT ["/bin/bash", "-lc"]

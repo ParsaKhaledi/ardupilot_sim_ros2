@@ -13,8 +13,9 @@ services:
     environment:
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: ${XAUTH:-/tmp/.docker.xauth}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
       CAMERA_PROFILE: ${CAMERA_PROFILE:-gimbal}
-      MODEL_PROFILE: ${MODEL_PROFILE:-iris_with_gimbal}
+      MODEL_PROFILE: ${MODEL_PROFILE:-iris_with_down_camera}
       WORLD_PROFILE: ${WORLD_PROFILE:-world-default}
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
       PHYSICS_STEP_SIZE: ${PHYSICS_STEP_SIZE:-0.002}
@@ -28,6 +29,7 @@ services:
       - ./config:/workspace/config:ro
       - ./scripts:/workspace/scripts:ro
       - ./worlds:/workspace/worlds:ro
+      - ./models:/workspace/models:ro
       - ./volume:/volume
     command: /workspace/scripts/sim.sh
 
@@ -43,6 +45,7 @@ services:
     environment:
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: ${XAUTH:-/tmp/.docker.xauth}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
     volumes:
       - /tmp/.X11-unix/:/tmp/.X11-unix/
       - /dev:/dev/
@@ -65,7 +68,8 @@ services:
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: ${XAUTH:-/tmp/.docker.xauth}
       QT_X11_NO_MITSHM: "1"
-      CAMERA_TOPIC: ${CAMERA_TOPIC:-/camera/image}
+      RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+      CAMERA_TOPIC: ${CAMERA_TOPIC:-/camera/rgb/image_raw}
       RQT_WAIT_SEC: ${RQT_WAIT_SEC:-120}
     volumes:
       - /tmp/.X11-unix/:/tmp/.X11-unix/

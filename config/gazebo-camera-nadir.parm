@@ -1,0 +1,8 @@
+# Default gimbal to nadir (-90 deg pitch) with no RC input.
+# RC7 maps 1100..1900 to MNT1_PITCH_MIN..MAX (-135..+45 deg).
+# 1300 => -90 deg (straight down).
+RC7_TRIM     1300
+RC6_TRIM     1500
+RC8_TRIM     1500
+MNT1_RC_RATE 0
+MNT1_DEFLT_MODE 4
