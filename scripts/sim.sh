@@ -15,7 +15,7 @@ CAMERA_PROFILE="${CAMERA_PROFILE:-gimbal}"
 WORLD_PROFILE="${WORLD_PROFILE:-world-default}"
 MODEL_PROFILE="${MODEL_PROFILE:-iris_with_down_camera}"
 SIM_SPEEDUP="${SIM_SPEEDUP:-1}"
-PHYSICS_STEP_SIZE="${PHYSICS_STEP_SIZE:-0.002}"
+PHYSICS_STEP_SIZE="${PHYSICS_STEP_SIZE:-0.001}"
 GZ_HEADLESS="${GZ_HEADLESS:-false}"
 GZ_SERVER_ONLY="${GZ_SERVER_ONLY:-false}"
 ENABLE_GST_STREAM="${ENABLE_GST_STREAM:-false}"
@@ -24,9 +24,14 @@ DEFAULTS_FILE="Tools/autotest/default_params/copter.parm"
 ROBOT_NAME="${MODEL_PROFILE}"
 CAMERA_LINK="down_camera_link"
 USE_GIMBAL_NADIR=false
+HAS_CAMERA=true
 BRIDGE_FILE="/tmp/ros_gz_bridge.yaml"
 
 case "${MODEL_PROFILE}" in
+  iris_with_ardupilot)
+    CAMERA_LINK=""
+    HAS_CAMERA=false
+    ;;
   iris_with_down_camera)
     CAMERA_LINK="down_camera_link"
     ;;
@@ -81,7 +86,14 @@ sed -e "s/\${WORLD_NAME}/${WORLD_NAME}/g" \
 
 WORLD_RUNTIME="/tmp/world_runtime.sdf"
 cp "${WORLD_FILE}" "${WORLD_RUNTIME}"
+PHYSICS_UPDATE_RATE="$(python3 -c "print(int(round(1 / float('${PHYSICS_STEP_SIZE}'))))")"
 sed -i "s|<max_step_size>.*</max_step_size>|<max_step_size>${PHYSICS_STEP_SIZE}</max_step_size>|" "${WORLD_RUNTIME}"
+if grep -q '<real_time_update_rate>' "${WORLD_RUNTIME}"; then
+  sed -i "s|<real_time_update_rate>.*</real_time_update_rate>|<real_time_update_rate>${PHYSICS_UPDATE_RATE}</real_time_update_rate>|" "${WORLD_RUNTIME}"
+else
+  sed -i "s|</real_time_factor>|</real_time_factor>\n      <real_time_update_rate>${PHYSICS_UPDATE_RATE}</real_time_update_rate>|" "${WORLD_RUNTIME}"
+fi
+sed -i "s|model://iris_with_ardupilot|model://${MODEL_PROFILE}|g" "${WORLD_RUNTIME}"
 sed -i "s|model://iris_with_gimbal|model://${MODEL_PROFILE}|g" "${WORLD_RUNTIME}"
 sed -i "s|model://iris_with_down_camera|model://${MODEL_PROFILE}|g" "${WORLD_RUNTIME}"
 
@@ -121,16 +133,20 @@ if [[ "${ENABLE_GST_STREAM}" == "true" ]]; then
 fi
 
 echo "Waiting for Gazebo camera topic: ${CAMERA_GZ_IMAGE_TOPIC}"
-camera_deadline=$((SECONDS + 60))
-while (( SECONDS < camera_deadline )); do
-  if gz topic -l 2>/dev/null | grep -Fxq "${CAMERA_GZ_IMAGE_TOPIC}"; then
-    echo "Gazebo camera topic is available."
-    break
+if [[ "${HAS_CAMERA}" == "true" ]]; then
+  camera_deadline=$((SECONDS + 60))
+  while (( SECONDS < camera_deadline )); do
+    if gz topic -l 2>/dev/null | grep -Fxq "${CAMERA_GZ_IMAGE_TOPIC}"; then
+      echo "Gazebo camera topic is available."
+      break
+    fi
+    sleep 2
+  done
+  if ! gz topic -l 2>/dev/null | grep -Fxq "${CAMERA_GZ_IMAGE_TOPIC}"; then
+    echo "WARNING: Gazebo camera topic ${CAMERA_GZ_IMAGE_TOPIC} not found; starting bridge anyway."
   fi
-  sleep 2
-done
-if ! gz topic -l 2>/dev/null | grep -Fxq "${CAMERA_GZ_IMAGE_TOPIC}"; then
-  echo "WARNING: Gazebo camera topic ${CAMERA_GZ_IMAGE_TOPIC} not found; starting bridge anyway."
+else
+  echo "Model ${MODEL_PROFILE} has no camera; skipping camera topic wait."
 fi
 
 echo "Starting ros_gz_bridge (RMW=${RMW_IMPLEMENTATION}) with config: ${BRIDGE_FILE}"
@@ -138,10 +154,12 @@ ros2 run ros_gz_bridge parameter_bridge --ros-args -p config_file:="${BRIDGE_FIL
 BRIDGE_PID=$!
 
 sleep 3
-if timeout 5 ros2 topic hz "/camera/rgb/image_raw" 2>/dev/null | grep -q "average rate"; then
-  echo "ROS camera bridge OK: /camera/rgb/image_raw is publishing."
-else
-  echo "WARNING: /camera/rgb/image_raw not publishing yet; check bridge config and Gazebo rendering."
+if [[ "${HAS_CAMERA}" == "true" ]]; then
+  if timeout 5 ros2 topic hz "/camera/rgb/image_raw" 2>/dev/null | grep -q "average rate"; then
+    echo "ROS camera bridge OK: /camera/rgb/image_raw is publishing."
+  else
+    echo "WARNING: /camera/rgb/image_raw not publishing yet; check bridge config and Gazebo rendering."
+  fi
 fi
 
 if [[ "${USE_GIMBAL_NADIR}" == "true" ]]; then

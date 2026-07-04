@@ -18,7 +18,7 @@ services:
       MODEL_PROFILE: ${MODEL_PROFILE:-iris_with_down_camera}
       WORLD_PROFILE: ${WORLD_PROFILE:-world-default}
       SIM_SPEEDUP: ${SIM_SPEEDUP:-1}
-      PHYSICS_STEP_SIZE: ${PHYSICS_STEP_SIZE:-0.002}
+      PHYSICS_STEP_SIZE: ${PHYSICS_STEP_SIZE:-0.001}
       GZ_HEADLESS: ${GZ_HEADLESS:-false}
       GZ_SERVER_ONLY: ${GZ_SERVER_ONLY:-false}
       ENABLE_GST_STREAM: ${ENABLE_GST_STREAM:-false}
@@ -38,10 +38,13 @@ services:
     container_name: ardupilot-mavproxy
     hostname: ardupilot-mavproxy
     tty: true
+    stdin_open: true
     privileged: true
     network_mode: host
     restart: unless-stopped
     profiles: ["gcs"]
+    depends_on:
+      - sim
     environment:
       DISPLAY: ${DISPLAY:-:0}
       XAUTHORITY: ${XAUTH:-/tmp/.docker.xauth}

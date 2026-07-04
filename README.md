@@ -1,7 +1,7 @@
 # ardupilot_sim_ros2
 
 Dockerized ArduPilot + Gazebo Harmonic simulation with:
-- Iris quadrotor and fixed down-facing camera (default) or optional 3-axis gimbal
+- Iris quadrotor (default: `iris_with_down_camera` with fixed belly camera), optional gimbal or bare Iris variants
 - ROS 2 bridging via `ros_gz_bridge` (camera, IMU, odometry, TF, sensors)
 - optional MAVProxy GCS + rqt camera viewer (`gcs` profile)
 - selectable model, world, and camera runtime profiles
@@ -73,7 +73,7 @@ docker compose --profile gcs up -d
 ```
 
 This starts:
-- **mavproxy** — flight control console/map
+- **mavproxy** — forwards mavlink to `udp:127.0.0.1:14550` (connect QGroundControl)
 - **rqt** — live `/camera/rgb/image_raw` viewer
 
 ## Runtime profiles
@@ -86,12 +86,12 @@ Set these in [`.env`](.env.example):
 | `DOCKER_IMAGE_TAG` | e.g. `latest`, `42` (GitHub run number) | Image tag to pull/run |
 | `CAMERA_PROFILE` | `gimbal`, `fixed-down` | Gimbal-only: nadir preset and RC control (`iris_with_gimbal` only) |
 | `WORLD_PROFILE` | `world-default`, `world-runway`, `world-alt`, `world-aruco` | World selection in `sim.sh` |
-| `MODEL_PROFILE` | `iris_with_down_camera`, `iris_with_gimbal` | Drone model (default: fixed belly camera) |
+| `MODEL_PROFILE` | `iris_with_down_camera`, `iris_with_gimbal`, `iris_with_ardupilot` | Drone model (default: fixed down-facing camera) |
 | `GZ_HEADLESS` | `true`, `false` | Offscreen rendering (no GUI window, camera still works) |
 | `GZ_SERVER_ONLY` | `true`, `false` | Gazebo server only (`-s`), best RTF |
 | `ENABLE_GST_STREAM` | `true`, `false` | Enable GStreamer UDP H.264 on port 5600 |
 | `SIM_SPEEDUP` | e.g. `1` | SITL speed multiplier |
-| `PHYSICS_STEP_SIZE` | `0.002` (default), `0.001`, `0.003` | Gazebo physics step (seconds) |
+| `PHYSICS_STEP_SIZE` | `0.001` (default), `0.002`, `0.003` | Gazebo physics step (seconds); `0.001` matches 1000 Hz IMU |
 | `RMW_IMPLEMENTATION` | `rmw_cyclonedds_cpp` | Required for ROS 2 across Docker containers (FastDDS SHM fails between containers) |
 | `CAMERA_TOPIC` | `/camera/rgb/image_raw` | ROS 2 image topic for rqt viewer |
 | `RQT_WAIT_SEC` | e.g. `120` | Seconds to wait for camera topic before rqt exits |
@@ -100,50 +100,74 @@ Set these in [`.env`](.env.example):
 
 | Profile | World file | Description |
 |---------|------------|-------------|
-| `world-default` | `worlds/iris_simple.sdf` | Ground plane + iris, minimal |
+| `world-default` | `worlds/iris_simple.sdf` | Ground plane + iris (minimal / empty world) |
 | `world-runway` | `worlds/iris_runway.sdf` | Runway mesh (`models/runway`) |
 | `world-alt` | upstream `iris_warehouse.sdf` | Warehouse scene (from `ardupilot_gazebo` clone in the image) |
 | `world-aruco` | `worlds/iris_aruco_4tags.sdf` | Ground + 3×3 ArUco pad (DICT_5X5_1000, IDs 0–8) |
 
-`sim.sh` patches the spawned model URI in the world file to match `MODEL_PROFILE`, so `world-aruco` works with either `iris_with_down_camera` or `iris_with_gimbal`.
+`sim.sh` patches the spawned model URI and physics update rate in the world file to match `MODEL_PROFILE` and `PHYSICS_STEP_SIZE`, so any world works with any supported Iris model.
+
+### Quick profile examples
+
+| Goal | `.env` settings |
+|------|-----------------|
+| Default (empty world + down camera) | `MODEL_PROFILE=iris_with_down_camera` `WORLD_PROFILE=world-default` |
+| ArUco landing pad | `MODEL_PROFILE=iris_with_down_camera` `WORLD_PROFILE=world-aruco` |
+| Official runway + gimbal | `MODEL_PROFILE=iris_with_gimbal` `WORLD_PROFILE=world-runway` |
+| Bare Iris (no camera) | `MODEL_PROFILE=iris_with_ardupilot` `WORLD_PROFILE=world-default` |
+
+### Default launch
+
+Default: `iris_with_down_camera` in `world-default` (`iris_simple.sdf`), with 1000 Hz physics aligned to the IMU sensor rate.
+
+```bash
+cp .env.example .env
+docker compose up -d
+```
+
+ArUco world with down camera:
+
+```bash
+WORLD_PROFILE=world-aruco docker compose up -d
+```
+
+With MAVProxy and live camera viewer:
+
+```bash
+WORLD_PROFILE=world-aruco docker compose --profile gcs up -d
+```
+
+Official runway world (from [ArduPilot Gazebo](https://ardupilot.org/dev/docs/sitl-with-gazebo.html)):
+
+```bash
+WORLD_PROFILE=world-runway MODEL_PROFILE=iris_with_gimbal docker compose up -d
+```
 
 ### Camera model
 
 Default model `iris_with_down_camera` lives at [`models/iris_with_down_camera/model.sdf`](models/iris_with_down_camera/model.sdf). Edit the **`CAMERA CONFIG`** block to change resolution, FOV, update rate, or mount pose — then restart sim (no image rebuild needed when using the compose volume mount).
-
-```bash
-docker compose up -d --force-recreate sim
-```
 
 For the legacy 3-axis gimbal:
 
 ```bash
 MODEL_PROFILE=iris_with_gimbal
 CAMERA_PROFILE=gimbal   # or fixed-down to lock nadir
+WORLD_PROFILE=world-runway
 docker compose up -d
 ```
 
-Example — ArUco world with default down camera:
+Restart after editing models or worlds:
 
 ```bash
-WORLD_PROFILE=world-aruco
-docker compose up -d
-```
-
-With live camera viewer:
-
-```bash
-WORLD_PROFILE=world-aruco docker compose --profile gcs up -d
+docker compose up -d --force-recreate sim
 ```
 
 ## Performance / real-time factor (RTF)
 
-RTF is how fast simulation runs vs wall clock (`1.0` = real-time). At `PHYSICS_STEP_SIZE=0.001` you need **1000 physics steps per simulated second**, which is heavy with GUI + camera + Iris plugins — ~50% RTF is common.
-
 | Setting | Effect on RTF | Stability |
 |---------|---------------|-----------|
-| `PHYSICS_STEP_SIZE=0.001` | Slowest (~50% typical) | Most stable |
-| `PHYSICS_STEP_SIZE=0.002` | **Default** — ~2× faster physics | Usually stable for Iris |
+| `PHYSICS_STEP_SIZE=0.001` | **Default** — matches 1000 Hz IMU | Most stable |
+| `PHYSICS_STEP_SIZE=0.002` | ~2× faster physics | Usually stable for Iris |
 | `PHYSICS_STEP_SIZE=0.003` | Faster | May need testing |
 | `PHYSICS_STEP_SIZE=0.01` | Fast but **ODE crash risk** | Unstable |
 
@@ -196,6 +220,7 @@ docker exec -it ardupilot-sim bash
 source /opt/ros/humble/setup.bash
 ros2 topic list
 ros2 topic hz /camera/rgb/image_raw
+ros2 topic hz /imu
 ros2 topic echo /imu --once
 ```
 
@@ -210,25 +235,22 @@ On the host (with `network_mode: host`), topics are also visible if ROS 2 is sou
 
 ## MAVProxy
 
-When `--profile gcs` is used, MAVProxy and rqt start automatically via [`scripts/mavproxy.sh`](scripts/mavproxy.sh) and [`scripts/rqt_image_view.sh`](scripts/rqt_image_view.sh).
-
-```text
-tcp:127.0.0.1:5760  →  udp:127.0.0.1:14550
-```
-
-Manual example inside container:
+With `--profile gcs`, [`scripts/mavproxy.sh`](scripts/mavproxy.sh) starts an interactive MAVProxy session and also forwards mavlink to `udp:127.0.0.1:14550`.
 
 ```bash
-mavproxy.py --master=tcp:127.0.0.1:5760 --out=udp:127.0.0.1:14550 --map --console
+docker compose --profile gcs up -d
+docker attach ardupilot-mavproxy
 ```
 
-Typical flight test:
+At the `STABILIZE>` prompt:
 
 ```text
 mode guided
 arm throttle
 takeoff 5
 ```
+
+Detach without stopping the container: **Ctrl+P**, then **Ctrl+Q**.
 
 ## ArUco landing pad
 

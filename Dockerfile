@@ -25,12 +25,15 @@ RUN apt update && apt upgrade -y && apt install -y --no-install-recommends \
     build-essential \
     cmake \
     curl \
+    dbus-x11 \
     gettext-base \
     git \
     gnupg2 \
     gstreamer1.0-gl \
     gstreamer1.0-libav \
     gstreamer1.0-plugins-bad \
+    libcanberra-gtk-module \
+    libcanberra-gtk3-module \
     libgstreamer-plugins-base1.0-dev \
     libgstreamer1.0-dev \
     libopencv-dev \
@@ -38,9 +41,14 @@ RUN apt update && apt upgrade -y && apt install -y --no-install-recommends \
     python3 \
     python3-argcomplete \
     python3-colcon-common-extensions \
+    python3-lxml \
+    python3-matplotlib \
+    python3-opencv \
     python3-pip \
+    python3-pygame \
     python3-rosdep \
     python3-vcstool \
+    python3-wxgtk4.0 \
     rapidjson-dev \
     ros-dev-tools \
     software-properties-common \
@@ -107,6 +115,7 @@ RUN chown -R ${USER_NAME}:${USER_NAME} /workspace
 
 USER ${USER_NAME}
 
+ENV PATH=/home/${USER_NAME}/.local/bin:${PATH}
 ENV GZ_SIM_SYSTEM_PLUGIN_PATH=/home/${USER_NAME}/ardupilot_gazebo/build:${GZ_SIM_SYSTEM_PLUGIN_PATH}
 ENV GZ_SIM_RESOURCE_PATH=/workspace/models:/workspace/worlds:/home/${USER_NAME}/ardupilot_gazebo/models:/home/${USER_NAME}/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}
 
